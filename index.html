@@ -1,0 +1,210 @@
+<!DOCTYPE html>
+<html lang="en"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>DSCDA Voucher Desk</title>
+<style>
+:root{--navy:#183763;--deep:#12315B;--blue:#1558C0;--mid:#3D73D9;--pale:#EAF3FF;--soft:#DDEBFC;--surf:#F6F9FE;--bd:#D6E3F5;--mut:#58749B;--tx:#203A60;--ok:#1B7A46;--warn:#8A5A00;--err:#B3261E}
+*{box-sizing:border-box;margin:0}
+body{font:16px/1.5 "Segoe UI",system-ui,sans-serif;color:var(--tx);background:linear-gradient(#DDEBFC,#F3F8FF 360px) fixed;padding:12px}
+.wrap{max-width:860px;margin:0 auto}
+h1,h2,h3{font-family:Georgia,"Times New Roman",serif;color:var(--deep);font-weight:700}
+.bar{display:flex;align-items:center;gap:12px;background:#fff;border:1px solid var(--bd);border-radius:18px;padding:10px 14px;box-shadow:0 4px 18px rgba(24,55,99,.06)}
+.logo{width:40px;height:40px;border-radius:10px;background:var(--blue);color:#fff;display:grid;place-items:center;font:700 16px Georgia,serif}
+.bar b{display:block;font:700 18px Georgia,serif;color:var(--deep)}.bar small,.mut{color:var(--mut);font-size:13px}
+.me{margin-left:auto;text-align:right;font-size:13px}
+.tabs{display:flex;gap:8px;margin:16px 0}
+.tabs button{flex:1;padding:12px;border:1px solid var(--bd);background:#fff;border-radius:14px;font:600 15px inherit;color:var(--mut);cursor:pointer}
+.tabs button.on{background:var(--blue);border-color:var(--blue);color:#fff}
+.card{background:#fff;border:1px solid var(--bd);border-radius:20px;padding:18px;margin-bottom:14px}
+.card h2{font-size:21px;margin-bottom:12px}
+.f{margin-bottom:16px}.f>label,.lb{display:block;font-weight:600;font-size:14px;margin-bottom:6px}
+.req::after{content:" *";color:var(--err)}
+input,select,textarea{width:100%;padding:13px 14px;border:1px solid var(--bd);border-radius:12px;background:var(--surf);font:16px inherit;color:var(--tx)}
+input:focus,select:focus,textarea:focus,button:focus-visible{outline:2px solid var(--mid);outline-offset:1px}
+textarea{min-height:90px;resize:vertical}
+.chk{display:flex;flex-wrap:wrap;gap:8px}.chk label,.rad label{display:flex;align-items:center;gap:8px;padding:11px 14px;border:1px solid var(--bd);border-radius:12px;background:var(--surf);font-weight:500;cursor:pointer;min-height:44px}
+.chk input,.rad input{width:18px;height:18px;padding:0}
+.rad{display:grid;gap:8px;margin-bottom:8px}
+.btn{width:100%;padding:15px;border:0;border-radius:14px;background:var(--blue);color:#fff;font:700 17px inherit;cursor:pointer}
+.btn.sec{background:var(--pale);color:var(--blue);border:1px solid var(--bd);width:auto;padding:11px 16px;font-size:15px}
+.btn.bad{background:#fff;color:var(--err);border:1px solid var(--err)}.btn[disabled]{opacity:.55;cursor:wait}
+.box{background:var(--pale);border:1px solid var(--bd);border-radius:12px;padding:12px 14px;font-size:14px;margin-top:8px}
+.note{background:var(--pale);border-left:4px solid var(--blue);border-radius:12px;padding:12px 14px;font-size:14px;margin-top:14px}
+.msg{padding:12px 14px;border-radius:12px;margin-bottom:12px;font-size:15px}.msg.e{background:#FDECEA;color:var(--err)}.msg.s{background:#E6F4EC;color:var(--ok)}
+.fl{background:#FFF4DC;color:var(--warn);border-radius:10px;padding:6px 10px;font-size:13px;margin-top:6px}
+.files div{display:flex;justify-content:space-between;align-items:center;gap:8px;padding:8px 12px;border:1px solid var(--bd);border-radius:10px;margin-top:6px;font-size:14px}
+.files button{border:0;background:none;color:var(--err);font-weight:700;cursor:pointer;padding:6px 10px}
+.row{display:flex;justify-content:space-between;gap:10px;align-items:flex-start;padding:12px 0;border-top:1px solid var(--bd);cursor:pointer}
+.row:first-child{border-top:0}.row b{display:block}.pill{font-size:12px;font-weight:700;padding:3px 10px;border-radius:99px;background:var(--soft);color:var(--navy);white-space:nowrap}
+.pill.APPROVED,.pill.COMPLETED,.pill.VERIFIED{background:#E6F4EC;color:var(--ok)}.pill.REJECTED{background:#FDECEA;color:var(--err)}.pill.RETURNED{background:#FFF4DC;color:var(--warn)}
+.chips{display:flex;flex-wrap:wrap;gap:8px;margin-bottom:12px}.chips span{background:var(--surf);border:1px solid var(--bd);border-radius:12px;padding:6px 12px;font-size:13px}
+.flt{display:grid;grid-template-columns:1fr;gap:8px;margin-bottom:8px}
+dl{display:grid;grid-template-columns:130px 1fr;gap:6px 10px;font-size:14px}dt{color:var(--mut)}dd{margin:0;overflow-wrap:anywhere}
+.acts{display:grid;gap:8px;margin-top:12px}
+.hide{display:none!important}
+@media(min-width:640px){.g2{display:grid;grid-template-columns:1fr 1fr;gap:0 14px}.flt{grid-template-columns:200px 1fr}.acts{grid-template-columns:2fr 1fr 1fr}}
+</style></head><body><div class="wrap">
+<div class="bar"><div class="logo">DC</div><div><b>DSCDA</b><small>Voucher desk</small></div><div class="me" id="me"></div></div>
+<form id="login" class="card hide"><h2>Sign in</h2><div class="f"><label for="lname">Your name</label><select id="lname"></select></div>
+<div class="f"><label for="lpin">Personal PIN</label><input id="lpin" type="password" inputmode="numeric" autocomplete="current-password" maxlength="10"></div>
+<button class="btn" id="lgo">Sign in</button><p class="mut" id="ln" role="alert" style="margin-top:10px"></p></form>
+<div id="err" class="card hide"></div>
+<div id="app" class="hide">
+<div class="tabs"><button data-t="new" class="on">New voucher</button><button data-t="mine">My vouchers</button><button data-t="rev" id="tRev" class="hide">Review</button></div>
+
+<section id="new"><form class="card" id="f" novalidate>
+<h2>New voucher</h2><div id="fm"></div>
+<div class="g2"><div class="f"><label class="req" for="person">Person raising voucher</label><select id="person"></select></div>
+<div class="f"><label class="req" for="dept">Department</label><select id="dept"></select></div>
+<div class="f"><label class="req" for="date">Voucher date</label><input type="date" id="date"></div>
+<div class="f"><label class="req" for="nature">Nature of voucher</label><select id="nature"></select></div></div>
+<div id="conv" class="hide">
+<div class="f"><span class="lb req">Type of conveyance</span><div class="chk" id="modes"></div></div>
+<div class="f"><span class="lb">Starting point</span><div class="rad">
+<label><input type="radio" name="sm" value="office" checked> Office (Sagar Apartments)</label>
+<label><input type="radio" name="sm" value="gps"> Current location</label>
+<label><input type="radio" name="sm" value="manual"> Enter manually</label></div>
+<input id="start" readonly aria-label="Starting point"><div class="mut hide" id="gpsn"></div></div>
+<div class="f"><label for="dest">Destination</label><input id="dest" placeholder="Address or place name" maxlength="200"></div>
+<div class="f hide" id="bike"><button type="button" class="btn sec" id="calc">Calculate distance</button>
+<div class="box hide" id="km"></div>
+<div class="hide" id="mkm" style="margin-top:8px"><label for="manualKm">Distance in km (manual — will be flagged for review)</label><input type="number" id="manualKm" min="0" step="0.1" inputmode="decimal"></div></div>
+</div>
+<div class="f"><label for="file">Bills / receipts (PDF, JPG, PNG — up to 10 MB total)</label>
+<input type="file" id="file" accept="application/pdf,image/jpeg,image/png" multiple><div class="files" id="fl"></div>
+<div class="mut hide" id="billn" style="margin-top:6px">A bill is required for Metro or Cab.</div></div>
+<div class="f hide" id="rs"><label class="req" for="reason">Reason for missing receipt</label><input id="reason" maxlength="500"></div>
+<div class="g2"><div class="f"><label class="req" for="amount">Amount claimed (₹)</label><input type="number" id="amount" min="0" step="0.01" inputmode="decimal"></div></div>
+<div class="f"><label for="remarks">Remarks / purpose</label><textarea id="remarks" maxlength="1000" placeholder="Where, why, and what the amount covers"></textarea></div>
+<button class="btn" id="go">Submit voucher</button>
+<div class="note">Vouchers filled before 2 PM on Saturday are processed and paid on Tuesday, subject to verification and approval.</div>
+</form></section>
+
+<section id="mine" class="hide"><div class="card"><h2>My vouchers</h2><div id="mineL"></div></div></section>
+
+<section id="rev" class="hide"><div class="card"><h2>Review queue</h2><div class="chips" id="sum"></div>
+<div class="flt"><select id="st" aria-label="Status"><option value="PENDING">Needs my action</option><option value="ALL">All</option><option>SUBMITTED</option><option>VERIFIED</option><option>APPROVED</option><option>RETURNED</option><option>REJECTED</option><option>COMPLETED</option></select>
+<input id="q" placeholder="Search voucher ID or person" aria-label="Search"></div><div id="revL"></div></div></section>
+
+<div class="card hide" id="det"></div>
+</div>
+</div>
+<script>
+const API_URL='https://script.google.com/macros/s/AKfycbwfUUGQwZ16YMPHw9HD1r-8xpYp0qCyfZEtZipS9fN8piHl2eDKfhsjyA0FsS-p77RE/exec';   // the only setting; not a secret
+let sess='';try{sess=sessionStorage.getItem('dscda_s')||''}catch(e){}
+const setSess=t=>{sess=t;try{t?sessionStorage.setItem('dscda_s',t):sessionStorage.removeItem('dscda_s')}catch(e){}};
+const $=s=>document.querySelector(s),$$=s=>[...document.querySelectorAll(s)];
+const esc=s=>String(s==null?'':s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const inr=n=>n===''||n==null||isNaN(n)?'—':'₹'+Number(n).toLocaleString('en-IN',{maximumFractionDigits:2});
+function call(fn,...a){return fetch(API_URL,{method:'POST',headers:{'Content-Type':'text/plain;charset=utf-8'},body:JSON.stringify({fn,args:a,token:sess})})
+ .then(r=>r.json()).catch(()=>{throw new Error('Connection problem. Check your network and try again.')})
+ .then(r=>{if(r.auth){setSess('');login('Your session expired. Sign in again; your form is kept.')}if(r.ok===false)throw new Error(r.error);return r});}
+let B,files=[],token,km='';
+const newToken=()=>(crypto.randomUUID?crypto.randomUUID():String(Date.now())+Math.random().toString(36).slice(2,12));
+const fillSel=(el,arr,ph)=>{el.innerHTML=(ph?`<option value="">${ph}</option>`:'')+arr.map(x=>`<option>${esc(x)}</option>`).join('')};
+const show=(el,on)=>el.classList.toggle('hide',!on);
+const msg=(el,t,c)=>{el.innerHTML=t?`<div class="msg ${c}" role="alert">${esc(t)}</div>`:''};
+
+function login(n){show($('#login'),1);$('#ln').textContent=n||'';if(!$('#lname').options.length)call('loginNames').then(r=>fillSel($('#lname'),r.names,'Select your name')).catch(e=>$('#ln').textContent=e.message)}
+$('#login').onsubmit=e=>{e.preventDefault();const b=$('#lgo');b.disabled=true;$('#ln').textContent='';
+ call('login',$('#lname').value,$('#lpin').value).then(r=>{setSess(r.token);$('#lpin').value='';show($('#login'),0);show($('#err'),0);B?0:start()})
+ .catch(x=>$('#ln').textContent=x.message).finally(()=>b.disabled=false)};
+function start(){call('boot').then(r=>{B=r;init()}).catch(e=>{if(!sess)return;const x=$('#err');show(x,1);x.innerHTML=`<h2>Access needed</h2><p>${esc(e.message)}</p>`;login()})}
+sess?start():login();
+function init(){
+ const u=B.user,c=B.cfg;show($('#app'),1);$('#me').innerHTML=`${esc(u.name)}<br><span class="mut">${esc(u.role)} · <a href="#" id="so">Sign out</a></span>`;$('#so').onclick=e=>{e.preventDefault();setSess('');location.reload()};
+ setInterval(()=>{if(document.hidden)return;const t=document.querySelector('.tabs .on').dataset.t;if(t==='mine')loadMine();if(t==='rev'&&$('#det').classList.contains('hide'))loadRev()},300000);
+ fillSel($('#person'),c.people,'Select person');fillSel($('#dept'),c.depts,'Select department');fillSel($('#nature'),c.natures,'Select nature');
+ if(u.role==='EMPLOYEE'){$('#person').value=u.person;$('#person').disabled=true}
+ $('#modes').innerHTML=c.modes.map(m=>`<label><input type="checkbox" value="${esc(m)}"> ${esc(m)}</label>`).join('');
+ $('#date').value=new Date().toLocaleDateString('en-CA',{timeZone:'Asia/Kolkata'});$('#date').max=$('#date').value;
+ $('#start').value=c.office;token=newToken();
+ if(u.role!=='EMPLOYEE')show($('#tRev'),1);
+ $$('.tabs button').forEach(b=>b.onclick=()=>tab(b.dataset.t));
+ $('#nature').onchange=sync;$('#modes').onchange=sync;
+ $$('[name=sm]').forEach(r=>r.onchange=startMode);
+ $('#calc').onclick=calc;$('#manualKm').oninput=showKm;
+ $('#file').onchange=e=>{files.push(...e.target.files);e.target.value='';drawFiles()};
+ $('#f').onsubmit=submit;$('#st').onchange=loadRev;let tm;$('#q').oninput=()=>{clearTimeout(tm);tm=setTimeout(loadRev,350)};
+}
+function tab(t){$$('.tabs button').forEach(b=>b.classList.toggle('on',b.dataset.t===t));['new','mine','rev'].forEach(s=>show($('#'+s),s===t));show($('#det'),0);
+ if(t==='mine')loadMine();if(t==='rev')loadRev()}
+const modes=()=>$$('#modes input:checked').map(i=>i.value);
+function sync(){
+ const conv=$('#nature').value==='Conveyance',m=modes();show($('#conv'),conv);
+ const bike=conv&&(m.includes('Own Motorcycle')||m.includes('Own car'));show($('#bike'),bike);
+ show($('#billn'),conv&&(m.includes('Metro')||m.includes('Cab')));show($('#rs'),!files.length);if(!bike){km='';show($('#km'),0);show($('#mkm'),0)}}
+function startMode(){const v=document.querySelector('[name=sm]:checked').value,s=$('#start');show($('#gpsn'),0);
+ if(v==='office'){s.value=B.cfg.office;s.readOnly=true}
+ else if(v==='manual'){s.value='';s.readOnly=false;s.focus()}
+ else{s.value='';s.readOnly=true;const n=$('#gpsn');show(n,1);n.textContent='Asking for your location…';
+  navigator.geolocation?navigator.geolocation.getCurrentPosition(p=>{s.value=p.coords.latitude.toFixed(6)+','+p.coords.longitude.toFixed(6);n.textContent='Location captured. It only sets the starting point; it does not prove the journey.'},
+  ()=>{n.textContent='Location unavailable or blocked. Choose "Enter manually" instead.'},{timeout:15000}):n.textContent='This browser cannot share location. Choose "Enter manually".'}}
+function showKm(){const k=Number($('#manualKm').value)||km;const b=$('#km');if(!k){show(b,0);return}
+ show(b,1);b.innerHTML=`<b>${k} km</b> × ₹${B.cfg.rate} = <b>${inr(Math.round(k*B.cfg.rate*100)/100)}</b> suggested for your own vehicle<br><span class="mut">Source: ${$('#manualKm').value?'manual entry (flagged for review)':'Google Maps driving route'}. Your claimed amount is not changed; the reviewer confirms.</span>`}
+function calc(){const b=$('#calc');b.disabled=true;msg($('#fm'),'');
+ call('calcRoute',$('#start').value,$('#dest').value).then(r=>{km=r.km;$('#manualKm').value='';show($('#mkm'),0);showKm()})
+ .catch(e=>{km='';show($('#mkm'),1);showKm();msg($('#fm'),e.message,'e')}).finally(()=>b.disabled=false)}
+function drawFiles(){const t=files.reduce((a,f)=>a+f.size,0);
+ $('#fl').innerHTML=files.map((f,i)=>`<div><span>${esc(f.name)} (${(f.size/1048576).toFixed(2)} MB)</span><button type="button" data-i="${i}" aria-label="Remove ${esc(f.name)}">Remove</button></div>`).join('')+(t>B.cfg.maxBytes?'<div class="msg e">Total is over 10 MB. Remove a file.</div>':'');
+ $$('#fl button').forEach(b=>b.onclick=()=>{files.splice(+b.dataset.i,1);drawFiles()});sync()}
+const b64=f=>new Promise((res,rej)=>{const r=new FileReader();r.onload=()=>res(r.result.split(',')[1]);r.onerror=rej;r.readAsDataURL(f)});
+
+async function submit(e){e.preventDefault();const fm=$('#fm'),m=modes(),n=$('#nature').value,v=id=>$('#'+id).value.trim();msg(fm,'');
+ const bad=t=>{msg(fm,t,'e');fm.scrollIntoView({behavior:'smooth'})};
+ if(!v('person')||!v('dept')||!v('date')||!n)return bad('Complete person, department, date and nature of voucher.');
+ if(!(Number(v('amount'))>0))return bad('Enter an amount greater than 0.');
+ if(n==='Conveyance'&&!m.length)return bad('Select at least one type of conveyance.');
+ if(n==='Conveyance'&&(m.includes('Metro')||m.includes('Cab'))&&!files.length)return bad('A bill is required for Metro or Cab.');
+ if(!files.length&&!v('reason'))return bad('Explain why there is no receipt.');
+ if(files.reduce((a,f)=>a+f.size,0)>B.cfg.maxBytes)return bad('Total upload size must be under 10 MB.');
+ if(files.some(f=>!B.cfg.types.includes(f.type)))return bad('Only PDF, JPG and PNG files are allowed.');
+ if((m.includes('Own Motorcycle')||m.includes('Own car'))&&(!v('start')||!v('dest')))return bad('Own motorcycle / own car needs a start point and a destination.');
+ const btn=$('#go');btn.disabled=true;btn.textContent=files.length?'Uploading files and saving…':'Saving…';
+ try{const fl=await Promise.all(files.map(async f=>({name:f.name,mime:f.type,data:await b64(f)})));
+  const r=await call('submitVoucher',{token,person:v('person'),dept:v('dept'),date:v('date'),nature:n,modes:n==='Conveyance'?m:[],
+   startMode:document.querySelector('[name=sm]:checked').value,start:v('start'),dest:v('dest'),manualKm:v('manualKm'),amount:v('amount'),remarks:v('remarks'),reason:v('reason'),files:fl});
+  msg(fm,`Voucher submitted. ID: ${r.voucherId}`,'s');$('#f').reset();files=[];km='';token=newToken();
+  if(B.user.role==='EMPLOYEE')$('#person').value=B.user.person;$('#date').value=$('#date').max;$('#start').value=B.cfg.office;drawFiles();fm.scrollIntoView({behavior:'smooth'})
+ }catch(x){bad(x.message+' Nothing was submitted twice; you can press Submit again.')}
+ finally{btn.disabled=false;btn.textContent='Submit voucher'}}
+
+const rowH=v=>`<div class="row" data-id="${esc(v.id)}" tabindex="0"><div><b>${esc(v.id)}</b>${esc(v.person)} · ${esc(v.nature)} · ${esc(v.date)}<br><span class="mut">${esc(v.desc).slice(0,70)}</span></div><div style="text-align:right"><b>${inr(v.amount)}</b><span class="pill ${esc(v.status)}">${esc(v.status)}</span></div></div>`;
+function list(el,items,empty){el.innerHTML=items.length?items.map(rowH).join(''):`<p class="mut">${empty}</p>`;
+ $$('#'+el.id+' .row').forEach(r=>{r.onclick=()=>open(r.dataset.id);r.onkeydown=e=>{if(e.key==='Enter')open(r.dataset.id)}})}
+function loadMine(){const el=$('#mineL');el.innerHTML='<p class="mut">Loading…</p>';
+ call('listVouchers',{scope:'mine'}).then(r=>list(el,r.items,'No vouchers yet. Submit one from "New voucher".')).catch(e=>el.innerHTML=`<div class="msg e">${esc(e.message)}</div>`)}
+function loadRev(){const el=$('#revL');el.innerHTML='<p class="mut">Loading…</p>';
+ call('listVouchers',{scope:'review',status:$('#st').value,text:$('#q').value}).then(r=>{
+  const c=r.summary.counts;$('#sum').innerHTML=Object.keys(c).map(k=>`<span>${esc(k)}: <b>${c[k]}</b></span>`).join('')+`<span>No receipt: <b>${r.summary.missing}</b></span>`;
+  list(el,r.items,'Nothing matches. Try "All" or clear the search.')}).catch(e=>el.innerHTML=`<div class="msg e">${esc(e.message)}</div>`)}
+
+const metroDay=d=>new Date(d+'T00:00:00Z').getUTCDay()===0||B.cfg.holidays.includes(d);
+function open(id){const d=$('#det');show(d,1);d.innerHTML='<p class="mut">Loading…</p>';d.scrollIntoView({behavior:'smooth'});
+ call('getVoucher',id).then(r=>{const v=r.v,st=v.status,own=/Own Motorcycle|Own car/.test(v.modes),metro=/Metro/.test(v.modes);
+  const lbl={SUBMITTED:'Verify',VERIFIED:'Approve',APPROVED:'Mark paid'}[st];
+  d.innerHTML=`<h2>${esc(v.id)} <span class="pill ${esc(st)}">${esc(st)}</span></h2><div id="dm"></div><dl>
+  <dt>Person</dt><dd>${esc(v.person)} · ${esc(v.dept)}</dd><dt>Date</dt><dd>${esc(v.date)} (submitted ${esc(v.ts)})</dd><dt>Nature</dt><dd>${esc(v.nature)} ${esc(v.modes)}</dd>
+  <dt>Claimed</dt><dd>${inr(v.amount)}</dd>${v.verified!==''?`<dt>Verified</dt><dd>${inr(v.verified)}</dd>`:''}
+  ${v.start||v.dest?`<dt>Route</dt><dd>${esc(v.start)} → ${esc(v.dest)}</dd>`:''}
+  ${v.km!==''?`<dt>Distance</dt><dd>${esc(v.km)} km (${esc(v.kmSrc)}) × ₹${B.cfg.rate} = ${inr(v.eligible)} suggested</dd>`:''}
+  <dt>Remarks</dt><dd>${esc(v.desc)||'—'}</dd><dt>Receipts</dt><dd>${v.link?`<a href="${esc(v.link)}" target="_blank" rel="noopener">Open folder</a> (needs Drive access)`:'None on file'}</dd>
+  ${v.checkerBy?`<dt>Checked by</dt><dd>${esc(v.checkerBy)} ${esc(v.checkerNote)}</dd>`:''}${v.mdBy?`<dt>MD</dt><dd>${esc(v.mdBy)} ${esc(v.mdNote)}</dd>`:''}</dl>
+  ${metro?`<div class="box"><label class="lb" for="mk">Metro fare check: trip distance (km) from the DMRC fare calculator</label><input type="number" id="mk" step="0.1" min="0" style="max-width:160px"> <span id="mf"></span><div class="mut">Reference for one trip on ${esc(v.date)} (${metroDay(v.date)?'Sunday/holiday':'Mon–Sat'} fares). Compare with the tickets; it does not change any amount.</div></div>`:''}
+  ${v.flags.map(f=>`<div class="fl">⚠ ${esc(f)}</div>`).join('')}
+  ${v.canAct?`<div style="margin-top:14px">${st==='SUBMITTED'?`<div class="g2"><div class="f"><label for="ver">Verified amount (₹)</label><input type="number" id="ver" step="0.01" value="${esc(v.amount)}"></div>
+  ${own?`<div class="f"><label for="rkm">Confirmed distance (km)</label><input type="number" id="rkm" step="0.1" value="${esc(v.km)}"></div>`:''}</div>`:''}
+  <label class="lb" for="cm">${st==='APPROVED'?'Payment reference':'Comment'} (required to return or reject; also if you change amount or distance)</label><textarea id="cm"></textarea>
+  <div class="acts"><button class="btn" data-a="advance">${lbl}</button>${st!=='APPROVED'?'<button class="btn bad" data-a="return">Return</button><button class="btn bad" data-a="reject">Reject</button>':''}</div></div>`:''}
+  <h3 style="margin-top:16px">History</h3>${r.hist.map(h=>`<p class="mut">${esc(h.t)} · ${esc(h.by)} · ${esc(h.action)} → ${esc(h.to)} ${esc(h.note)}</p>`).join('')||'<p class="mut">No history yet.</p>'}
+  <button class="btn sec" style="margin-top:12px" id="cl">Close</button>`;
+  $('#cl').onclick=()=>show(d,0);
+  if($('#mk'))$('#mk').oninput=()=>{const k=Number($('#mk').value);const s=B.cfg.metro.find(x=>k<=x[0]);$('#mf').innerHTML=k>0&&s?`Fare slab: <b>${inr(metroDay(v.date)?s[2]:s[1])}</b> per trip`:''};
+  $$('#det [data-a]').forEach(b=>b.onclick=()=>{const a=b.dataset.a;
+   if(a!=='advance'&&!confirm(`${a==='reject'?'Reject':'Return'} ${v.id}? This is recorded in the audit history.`))return;
+   if(a==='advance'&&st==='APPROVED'&&!confirm('Mark as paid? Only do this once payment has been made.'))return;
+   $$('#det button').forEach(x=>x.disabled=true);
+   call('actOnVoucher',{id:v.id,action:a,comment:$('#cm').value,verified:$('#ver')?$('#ver').value:'',km:$('#rkm')&&$('#rkm').value!==String(v.km)?$('#rkm').value:''})
+    .then(()=>{show(d,0);loadRev()}).catch(e=>{msg($('#dm'),e.message,'e');$$('#det button').forEach(x=>x.disabled=false)})})
+ }).catch(e=>d.innerHTML=`<div class="msg e">${esc(e.message)}</div>`)}
+</script></body></html>
