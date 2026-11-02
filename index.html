@@ -52,6 +52,7 @@ textarea{min-height:90px;resize:vertical}
 dl{display:grid;grid-template-columns:110px minmax(0,1fr);gap:6px 10px;font-size:14px}@media(max-width:420px){dl{grid-template-columns:1fr;gap:0}dt{margin-top:8px;font-size:12px}}dt{color:var(--mut)}dd{margin:0;overflow-wrap:anywhere}
 .acts{display:grid;gap:8px;margin-top:12px}
 .hide{display:none!important}
+.act{display:inline-block;margin-top:6px;padding:6px 12px;border-radius:99px;background:var(--blue);color:#fff;font-size:13px;font-weight:700}
 .rcf{margin-top:10px}.rcf img{max-width:100%;border:1px solid var(--bd);border-radius:12px;display:block;margin:6px 0}.rcf iframe{width:100%;height:480px;border:1px solid var(--bd);border-radius:12px;margin:6px 0}
 @media(min-width:640px){.fb{grid-template-columns:repeat(5,minmax(0,1fr))}.g2{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:0 14px}.flt{grid-template-columns:200px 1fr}.acts{grid-template-columns:2fr 1fr 1fr}}
 </style></head><body><div class="wrap">
@@ -61,7 +62,7 @@ dl{display:grid;grid-template-columns:110px minmax(0,1fr);gap:6px 10px;font-size
 <button class="btn" id="lgo">Sign in</button><p class="mut" id="ln" role="alert" style="margin-top:10px"></p></form>
 <div id="err" class="card hide"></div>
 <div id="app" class="hide">
-<div class="tabs"><button data-t="new" id="tNew" class="on">New voucher</button><button data-t="mine">Vouchers</button><button data-t="rev" id="tRev" class="hide">Review</button></div>
+<div class="tabs"><button data-t="new" id="tNew" class="on">New voucher</button><button data-t="mine" id="tMine">Vouchers</button><button data-t="rev" id="tRev" class="hide">Vouchers</button></div>
 
 <section id="new"><form class="card" id="f" novalidate>
 <h2>New voucher</h2><div id="fm"></div>
@@ -92,7 +93,7 @@ dl{display:grid;grid-template-columns:110px minmax(0,1fr);gap:6px 10px;font-size
 </form></section>
 
 <section id="mine" class="hide"><div class="card"><h2 id="mineH">Vouchers</h2><div class="fb" id="fb_mine"></div><div id="mineL"></div></div></section>
-<section id="rev" class="hide"><div class="card"><h2>Review</h2><div class="chips" id="sum"></div><div class="fb" id="fb_rev"></div><div id="revL"></div></div></section>
+<section id="rev" class="hide"><div class="card"><h2>All vouchers</h2><div class="chips" id="sum"></div><div class="fb" id="fb_rev"></div><div id="revL"></div></div></section>
 
 <div class="card hide" id="det"></div>
 </div>
@@ -128,7 +129,7 @@ function init(){
  $('#modes').innerHTML=c.modes.map(m=>`<label><input type="checkbox" value="${esc(m)}"> ${esc(m)}</label>`).join('');
  $('#date').value=new Date().toLocaleDateString('en-CA',{timeZone:'Asia/Kolkata'});$('#date').max=$('#date').value;
  $('#startTxt').textContent=c.office;token=newToken();
- if(u.role!=='EMPLOYEE')show($('#tRev'),1);
+ if(u.role!=='EMPLOYEE'){show($('#tRev'),1);show($('#tMine'),0)}   // staff get one combined Vouchers tab
  $('#mineH').textContent=u.role==='EMPLOYEE'?'My vouchers':'All vouchers';
  $$('.tabs button').forEach(b=>b.onclick=()=>tab(b.dataset.t));
  $('#nature').onchange=sync;$('#modes').onchange=sync;
@@ -239,7 +240,7 @@ async function submit(e){e.preventDefault();const fm=$('#fm'),m=modes(),n=$('#na
  finally{btn.disabled=false;btn.textContent='Submit voucher'}}
 
 const fmtD=d=>{const x=new Date(d+'T00:00:00');return isNaN(x)?esc(d):x.toLocaleDateString('en-GB',{day:'2-digit',month:'short',year:'numeric'})};
-const rowH=v=>`<div class="row" data-id="${esc(v.id)}" tabindex="0" role="button"><div><b>${esc(v.id)}</b>${esc(v.person)} · ${esc(v.nature)}<br><span class="mut">${fmtD(v.date)}${v.desc?' · '+esc(String(v.desc).slice(0,60)):''}</span></div><div style="text-align:right"><b>${inr(v.amount)}</b><span class="pill ${esc(v.status)}">${esc(v.status)}</span>${v.auto?'<br><small class="mut">auto-approved</small>':v.status==='SUBMITTED'?'<br><small class="mut">needs checking</small>':''}</div></div>`;
+const rowH=v=>`<div class="row" data-id="${esc(v.id)}" tabindex="0" role="button"><div><b>${esc(v.id)}</b>${esc(v.person)} · ${esc(v.nature)}<br><span class="mut">${fmtD(v.date)}${v.desc?' · '+esc(String(v.desc).slice(0,60)):''}</span></div><div style="text-align:right"><b>${inr(v.amount)}</b><span class="pill ${esc(v.status)}">${esc(v.status)}</span>${v.auto?'<br><small class="mut">auto-approved</small>':v.status==='SUBMITTED'&&!v.canAct?'<br><small class="mut">needs checking</small>':''}${v.canAct?`<br><span class="act">${{SUBMITTED:'Verify',VERIFIED:'Review &amp; approve',APPROVED:'Mark paid'}[v.status]||'Open'} →</span>`:''}</div></div>`;
 function list(el,items,empty){el.innerHTML=items.length?items.map(rowH).join(''):`<p class="mut">${empty}</p>`;
  $$('#'+el.id+' .row').forEach(r=>{r.onclick=()=>open(r.dataset.id);r.onkeydown=e=>{if(e.key==='Enter')open(r.dataset.id)}})}
 const STS=['SUBMITTED','VERIFIED','APPROVED','RETURNED','REJECTED','COMPLETED'];let tmr;
@@ -254,7 +255,7 @@ function load(id){const el=$('#'+id+'L'),g=k=>($('#'+id+k)||{}).value||'',rv=id=
  call('listVouchers',{scope:rv?'review':staff?'all':'mine',status:g('s'),name:g('n'),from:g('f'),to:g('t'),text:g('q')}).then(r=>{
   const s=$('#'+id+'n');if(s){const cur=s.value;s.innerHTML='<option value="">All names</option>'+(r.names||[]).map(n=>`<option>${esc(n)}</option>`).join('');s.value=cur}
   if(rv)$('#sum').innerHTML=Object.keys(r.summary.counts).map(k=>`<span>${esc(k)}: <b>${r.summary.counts[k]}</b></span>`).join('')+`<span>No receipt: <b>${r.summary.missing}</b></span>`;
-  list(el,r.items,'Nothing matches these filters.');if(r.more)el.insertAdjacentHTML('beforeend','<p class="mut">Showing the latest 150. Narrow the name or dates to see others.</p>')})
+  list(el,r.items,g('s')==='PENDING'?'Nothing is waiting for your action. Set Status to "All" to see every voucher.':'Nothing matches these filters.');if(r.more)el.insertAdjacentHTML('beforeend','<p class="mut">Showing the latest 150. Narrow the name or dates to see others.</p>')})
  .catch(e=>el.innerHTML=`<div class="msg e">${esc(e.message)}</div>`)}
 
 const metroDay=d=>new Date(d+'T00:00:00Z').getUTCDay()===0||B.cfg.holidays.includes(d);
