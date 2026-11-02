@@ -38,11 +38,12 @@ textarea{min-height:90px;resize:vertical}
 .row:first-child{border-top:0}.row b{display:block}.pill{font-size:12px;font-weight:700;padding:3px 10px;border-radius:99px;background:var(--soft);color:var(--navy);white-space:nowrap}
 .pill.APPROVED,.pill.COMPLETED,.pill.VERIFIED{background:#E6F4EC;color:var(--ok)}.pill.REJECTED{background:#FDECEA;color:var(--err)}.pill.RETURNED{background:#FFF4DC;color:var(--warn)}
 .chips{display:flex;flex-wrap:wrap;gap:8px;margin-bottom:12px}.chips span{background:var(--surf);border:1px solid var(--bd);border-radius:12px;padding:6px 12px;font-size:13px}
+.fb{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:12px}.fb label{font-size:12px;color:var(--mut);font-weight:600;display:block;margin-bottom:3px}.fb select,.fb input{padding:10px 12px;font-size:15px}
 .flt{display:grid;grid-template-columns:1fr;gap:8px;margin-bottom:8px}
 dl{display:grid;grid-template-columns:130px 1fr;gap:6px 10px;font-size:14px}dt{color:var(--mut)}dd{margin:0;overflow-wrap:anywhere}
 .acts{display:grid;gap:8px;margin-top:12px}
 .hide{display:none!important}
-@media(min-width:640px){.g2{display:grid;grid-template-columns:1fr 1fr;gap:0 14px}.flt{grid-template-columns:200px 1fr}.acts{grid-template-columns:2fr 1fr 1fr}}
+@media(min-width:640px){.fb{grid-template-columns:repeat(5,1fr)}.g2{display:grid;grid-template-columns:1fr 1fr;gap:0 14px}.flt{grid-template-columns:200px 1fr}.acts{grid-template-columns:2fr 1fr 1fr}}
 </style></head><body><div class="wrap">
 <div class="bar"><div class="logo">DC</div><div><b>DSCDA</b><small>Voucher desk</small></div><div class="me" id="me"></div></div>
 <form id="login" class="card hide"><h2>Sign in</h2><div class="f"><label for="lname">Your name</label><select id="lname"></select></div>
@@ -50,7 +51,7 @@ dl{display:grid;grid-template-columns:130px 1fr;gap:6px 10px;font-size:14px}dt{c
 <button class="btn" id="lgo">Sign in</button><p class="mut" id="ln" role="alert" style="margin-top:10px"></p></form>
 <div id="err" class="card hide"></div>
 <div id="app" class="hide">
-<div class="tabs"><button data-t="new" class="on">New voucher</button><button data-t="mine">My vouchers</button><button data-t="rev" id="tRev" class="hide">Review</button></div>
+<div class="tabs"><button data-t="new" id="tNew" class="on">New voucher</button><button data-t="mine">Vouchers</button><button data-t="rev" id="tRev" class="hide">Review</button></div>
 
 <section id="new"><form class="card" id="f" novalidate>
 <h2>New voucher</h2><div id="fm"></div>
@@ -80,11 +81,8 @@ dl{display:grid;grid-template-columns:130px 1fr;gap:6px 10px;font-size:14px}dt{c
 <div class="note">Vouchers filled before 2 PM on Saturday are processed and paid on Tuesday, subject to verification and approval.</div>
 </form></section>
 
-<section id="mine" class="hide"><div class="card"><h2>My vouchers</h2><div id="mineL"></div></div></section>
-
-<section id="rev" class="hide"><div class="card"><h2>Review queue</h2><div class="chips" id="sum"></div>
-<div class="flt"><select id="st" aria-label="Status"><option value="PENDING">Needs my action</option><option value="ALL">All</option><option>SUBMITTED</option><option>VERIFIED</option><option>APPROVED</option><option>RETURNED</option><option>REJECTED</option><option>COMPLETED</option></select>
-<input id="q" placeholder="Search voucher ID or person" aria-label="Search"></div><div id="revL"></div></div></section>
+<section id="mine" class="hide"><div class="card"><h2 id="mineH">Vouchers</h2><div class="fb" id="fb_mine"></div><div id="mineL"></div></div></section>
+<section id="rev" class="hide"><div class="card"><h2>Review</h2><div class="chips" id="sum"></div><div class="fb" id="fb_rev"></div><div id="revL"></div></div></section>
 
 <div class="card hide" id="det"></div>
 </div>
@@ -113,23 +111,26 @@ function start(){call('boot').then(r=>{B=r;init()}).catch(e=>{if(!sess)return;co
 sess?start():login();
 function init(){
  const u=B.user,c=B.cfg;show($('#app'),1);$('#me').innerHTML=`${esc(u.name)}<br><span class="mut">${esc(u.role)} · <a href="#" id="so">Sign out</a></span>`;$('#so').onclick=e=>{e.preventDefault();setSess('');location.reload()};
- setInterval(()=>{if(document.hidden)return;const t=document.querySelector('.tabs .on').dataset.t;if(t==='mine')loadMine();if(t==='rev'&&$('#det').classList.contains('hide'))loadRev()},300000);
+ setInterval(()=>{if(document.hidden)return;const t=document.querySelector('.tabs .on').dataset.t;if((t==='mine'||t==='rev')&&$('#det').classList.contains('hide'))load(t)},300000);
  fillSel($('#person'),c.people,'Select person');fillSel($('#dept'),c.depts,'Select department');fillSel($('#nature'),c.natures,'Select nature');
  if(u.role==='EMPLOYEE'){$('#person').value=u.person;$('#person').disabled=true}
  $('#modes').innerHTML=c.modes.map(m=>`<label><input type="checkbox" value="${esc(m)}"> ${esc(m)}</label>`).join('');
  $('#date').value=new Date().toLocaleDateString('en-CA',{timeZone:'Asia/Kolkata'});$('#date').max=$('#date').value;
  $('#startTxt').textContent=c.office;token=newToken();
  if(u.role!=='EMPLOYEE')show($('#tRev'),1);
+ $('#mineH').textContent=u.role==='EMPLOYEE'?'My vouchers':'All vouchers';
  $$('.tabs button').forEach(b=>b.onclick=()=>tab(b.dataset.t));
  $('#nature').onchange=sync;$('#modes').onchange=sync;
  $$('[name=dm]').forEach(r=>r.onchange=destMode);$('#dest').oninput=()=>{rt=null;clearTimeout(tm2);tm2=setTimeout(calc,900)};
  $('#trip').onchange=()=>charges();$('#date').onchange=()=>charges();
  $('#manualKm').oninput=()=>charges();
  $('#file').onchange=e=>{files.push(...e.target.files);e.target.value='';drawFiles()};$('#amount').oninput=()=>drawFiles();
- $('#f').onsubmit=submit;$('#st').onchange=loadRev;let tm;$('#q').oninput=()=>{clearTimeout(tm);tm=setTimeout(loadRev,350)};
+ $('#f').onsubmit=submit;bar('mine',false);bar('rev',true);
+ if(u.role==='MD'){show($('#tNew'),0);tab('rev')}   // the MD only reviews
 }
 function tab(t){$$('.tabs button').forEach(b=>b.classList.toggle('on',b.dataset.t===t));['new','mine','rev'].forEach(s=>show($('#'+s),s===t));show($('#det'),0);
- if(t==='mine')loadMine();if(t==='rev')loadRev()}
+ if(t==='mine'||t==='rev')load(t)}
+const reload=()=>{const t=document.querySelector('.tabs .on').dataset.t;if(t==='mine'||t==='rev')load(t)};
 const modes=()=>$$('#modes input:checked').map(i=>i.value);
 const ROUTE=['Conveyance','PORTER','COURIER','POSTAGE'];let rt=null,destGps='',seq=0,tm2;
 const destVal=()=>document.querySelector('[name=dm]:checked').value==='gps'?destGps:$('#dest').value.trim();
@@ -210,12 +211,20 @@ async function submit(e){e.preventDefault();const fm=$('#fm'),m=modes(),n=$('#na
 const rowH=v=>`<div class="row" data-id="${esc(v.id)}" tabindex="0"><div><b>${esc(v.id)}</b>${esc(v.person)} · ${esc(v.nature)} · ${esc(v.date)}<br><span class="mut">${esc(v.desc).slice(0,70)}</span></div><div style="text-align:right"><b>${inr(v.amount)}</b><span class="pill ${esc(v.status)}">${esc(v.status)}</span>${v.auto?'<br><small class="mut">auto-approved</small>':v.status==='SUBMITTED'?'<br><small class="mut">needs checking</small>':''}</div></div>`;
 function list(el,items,empty){el.innerHTML=items.length?items.map(rowH).join(''):`<p class="mut">${empty}</p>`;
  $$('#'+el.id+' .row').forEach(r=>{r.onclick=()=>open(r.dataset.id);r.onkeydown=e=>{if(e.key==='Enter')open(r.dataset.id)}})}
-function loadMine(){const el=$('#mineL');el.innerHTML='<p class="mut">Loading…</p>';
- call('listVouchers',{scope:'mine'}).then(r=>list(el,r.items,'No vouchers yet. Submit one from "New voucher".')).catch(e=>el.innerHTML=`<div class="msg e">${esc(e.message)}</div>`)}
-function loadRev(){const el=$('#revL');el.innerHTML='<p class="mut">Loading…</p>';
- call('listVouchers',{scope:'review',status:$('#st').value,text:$('#q').value}).then(r=>{
-  const c=r.summary.counts;$('#sum').innerHTML=Object.keys(c).map(k=>`<span>${esc(k)}: <b>${c[k]}</b></span>`).join('')+`<span>No receipt: <b>${r.summary.missing}</b></span>`;
-  list(el,r.items,'Nothing matches. Try "All" or clear the search.')}).catch(e=>el.innerHTML=`<div class="msg e">${esc(e.message)}</div>`)}
+const STS=['SUBMITTED','VERIFIED','APPROVED','RETURNED','REJECTED','COMPLETED'];let tmr;
+function bar(id,pending){const nm=B.user.role!=='EMPLOYEE',el=$('#fb_'+id);
+ el.innerHTML=(nm?`<div><label for="${id}n">Name</label><select id="${id}n"><option value="">All names</option></select></div>`:'')+
+ `<div><label for="${id}f">Voucher date from</label><input type="date" id="${id}f"></div><div><label for="${id}t">Voucher date to</label><input type="date" id="${id}t"></div>
+ <div><label for="${id}s">Status</label><select id="${id}s">${pending?'<option value="PENDING">Needs my action</option>':''}<option value="ALL">All</option>${STS.map(x=>`<option>${x}</option>`).join('')}</select></div>
+ <div><label for="${id}q">Search</label><input id="${id}q" placeholder="Voucher ID"></div>`;
+ el.querySelectorAll('select,input').forEach(x=>x.oninput=()=>{clearTimeout(tmr);tmr=setTimeout(()=>load(id),x.id.endsWith('q')?350:60)})}
+function load(id){const el=$('#'+id+'L'),g=k=>($('#'+id+k)||{}).value||'',rv=id==='rev',staff=B.user.role!=='EMPLOYEE';
+ el.innerHTML='<p class="mut">Loading…</p>';
+ call('listVouchers',{scope:rv?'review':staff?'all':'mine',status:g('s'),name:g('n'),from:g('f'),to:g('t'),text:g('q')}).then(r=>{
+  const s=$('#'+id+'n');if(s){const cur=s.value;s.innerHTML='<option value="">All names</option>'+(r.names||[]).map(n=>`<option>${esc(n)}</option>`).join('');s.value=cur}
+  if(rv)$('#sum').innerHTML=Object.keys(r.summary.counts).map(k=>`<span>${esc(k)}: <b>${r.summary.counts[k]}</b></span>`).join('')+`<span>No receipt: <b>${r.summary.missing}</b></span>`;
+  list(el,r.items,'Nothing matches these filters.');if(r.more)el.insertAdjacentHTML('beforeend','<p class="mut">Showing the latest 150. Narrow the name or dates to see others.</p>')})
+ .catch(e=>el.innerHTML=`<div class="msg e">${esc(e.message)}</div>`)}
 
 const metroDay=d=>new Date(d+'T00:00:00Z').getUTCDay()===0||B.cfg.holidays.includes(d);
 function open(id){const d=$('#det');show(d,1);d.innerHTML='<p class="mut">Loading…</p>';d.scrollIntoView({behavior:'smooth'});
@@ -244,6 +253,6 @@ function open(id){const d=$('#det');show(d,1);d.innerHTML='<p class="mut">Loadin
    if(a==='advance'&&st==='APPROVED'&&!confirm('Mark as paid? Only do this once payment has been made.'))return;
    $$('#det button').forEach(x=>x.disabled=true);
    call('actOnVoucher',{id:v.id,action:a,comment:$('#cm').value,verified:$('#ver')?$('#ver').value:'',km:$('#rkm')&&$('#rkm').value!==String(v.km)?$('#rkm').value:''})
-    .then(()=>{show(d,0);loadRev()}).catch(e=>{msg($('#dm'),e.message,'e');$$('#det button').forEach(x=>x.disabled=false)})})
+    .then(()=>{show(d,0);reload()}).catch(e=>{msg($('#dm'),e.message,'e');$$('#det button').forEach(x=>x.disabled=false)})})
  }).catch(e=>d.innerHTML=`<div class="msg e">${esc(e.message)}</div>`)}
 </script></body></html>
