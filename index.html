@@ -3,9 +3,9 @@
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <title>DSCDA Voucher Desk</title>
 <style>
-:root{--navy:#183763;--deep:#12315B;--blue:#1558C0;--mid:#3D73D9;--pale:#EAF3FF;--soft:#DDEBFC;--surf:#F6F9FE;--bd:#D6E3F5;--mut:#58749B;--tx:#203A60;--ok:#1B7A46;--warn:#8A5A00;--err:#B3261E}
+:root{--navy:#183763;--deep:#12315B;--blue:#1558C0;--mid:#3D73D9;--pale:#EAF3FF;--soft:#DDEBFC;--surf:#F6F9FE;--bd:#D6E3F5;--mut:#58749B;--tx:#203A60;--ok:#1B7A46;--warn:#8A5A00;--err:#B3261E;--ff:'Segoe UI',system-ui,-apple-system,Roboto,sans-serif}
 *{box-sizing:border-box;margin:0}
-body{font:16px/1.5 "Segoe UI",system-ui,sans-serif;color:var(--tx);background:linear-gradient(#DDEBFC,#F3F8FF 360px) fixed;padding:12px}
+body{font:16px/1.5 var(--ff);color:var(--tx);background:linear-gradient(#DDEBFC,#F3F8FF 360px) fixed;padding:12px}
 .wrap{max-width:860px;margin:0 auto}
 h1,h2,h3{font-family:Georgia,"Times New Roman",serif;color:var(--deep);font-weight:700}
 .bar{display:flex;align-items:center;gap:12px;background:#fff;border:1px solid var(--bd);border-radius:18px;padding:10px 14px;box-shadow:0 4px 18px rgba(24,55,99,.06)}
@@ -13,19 +13,21 @@ h1,h2,h3{font-family:Georgia,"Times New Roman",serif;color:var(--deep);font-weig
 .bar b{display:block;font:700 18px Georgia,serif;color:var(--deep)}.bar small,.mut{color:var(--mut);font-size:13px}
 .me{margin-left:auto;text-align:right;font-size:13px}
 .tabs{display:flex;gap:8px;margin:16px 0}
-.tabs button{flex:1;padding:12px;border:1px solid var(--bd);background:#fff;border-radius:14px;font:600 15px inherit;color:var(--mut);cursor:pointer}
+.tabs button{flex:1;padding:12px;border:1px solid var(--bd);background:#fff;border-radius:14px;font:600 15px/1.2 var(--ff);color:var(--mut);cursor:pointer}
 .tabs button.on{background:var(--blue);border-color:var(--blue);color:#fff}
 .card{background:#fff;border:1px solid var(--bd);border-radius:20px;padding:18px;margin-bottom:14px}
 .card h2{font-size:21px;margin-bottom:12px}
 .f{margin-bottom:16px}.f>label,.lb{display:block;font-weight:600;font-size:14px;margin-bottom:6px}
+.lock{font-size:13px;color:var(--mut);margin-top:4px}select:disabled{opacity:1;color:var(--tx);-webkit-text-fill-color:var(--tx);background:var(--soft)}
+.btn.sec,.files button,.row{min-height:44px}.me a{color:var(--blue);font-weight:600;display:inline-flex;align-items:center;min-height:44px;padding:0 4px}
 .req::after{content:" *";color:var(--err)}
-input,select,textarea{width:100%;padding:13px 14px;border:1px solid var(--bd);border-radius:12px;background:var(--surf);font:16px inherit;color:var(--tx)}
+input,select,textarea{width:100%;padding:13px 14px;border:1px solid var(--bd);border-radius:12px;background:var(--surf);font:16px/1.4 var(--ff);color:var(--tx)}
 input:focus,select:focus,textarea:focus,button:focus-visible{outline:2px solid var(--mid);outline-offset:1px}
 textarea{min-height:90px;resize:vertical}
 .chk{display:flex;flex-wrap:wrap;gap:8px}.chk label,.rad label{display:flex;align-items:center;gap:8px;padding:11px 14px;border:1px solid var(--bd);border-radius:12px;background:var(--surf);font-weight:500;cursor:pointer;min-height:44px}
 .chk input,.rad input{width:18px;height:18px;padding:0}
 .rad{display:grid;gap:8px;margin-bottom:8px}
-.btn{width:100%;padding:15px;border:0;border-radius:14px;background:var(--blue);color:#fff;font:700 17px inherit;cursor:pointer}
+.btn{width:100%;padding:15px;border:0;border-radius:14px;background:var(--blue);color:#fff;font:700 17px/1.2 var(--ff);cursor:pointer}
 .btn.sec{background:var(--pale);color:var(--blue);border:1px solid var(--bd);width:auto;padding:11px 16px;font-size:15px}
 .btn.bad{background:#fff;color:var(--err);border:1px solid var(--err)}.btn[disabled]{opacity:.55;cursor:wait}
 .box{background:var(--pale);border:1px solid var(--bd);border-radius:12px;padding:12px 14px;font-size:14px;margin-top:8px}
@@ -39,7 +41,7 @@ textarea{min-height:90px;resize:vertical}
 .pill.APPROVED,.pill.COMPLETED,.pill.VERIFIED{background:#E6F4EC;color:var(--ok)}.pill.REJECTED{background:#FDECEA;color:var(--err)}.pill.RETURNED{background:#FFF4DC;color:var(--warn)}
 .chips{display:flex;flex-wrap:wrap;gap:8px;margin-bottom:12px}.chips span{background:var(--surf);border:1px solid var(--bd);border-radius:12px;padding:6px 12px;font-size:13px}
 .sg{position:absolute;left:0;right:0;top:100%;z-index:5;margin-top:4px;background:#fff;border:1px solid var(--bd);border-radius:12px;box-shadow:0 8px 24px rgba(24,55,99,.14);max-height:260px;overflow:auto}.sg div{padding:11px 14px;cursor:pointer;font-size:15px;border-top:1px solid var(--bd)}.sg div:first-child{border-top:0}.sg div:hover{background:var(--pale)}
-.fb{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:12px}.fb label{font-size:12px;color:var(--mut);font-weight:600;display:block;margin-bottom:3px}.fb select,.fb input{padding:10px 12px;font-size:15px}
+.fb{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:12px}.fb label{font-size:12px;color:var(--mut);font-weight:600;display:block;margin-bottom:3px}.fb select,.fb input{padding:11px 12px;font-size:16px}
 .flt{display:grid;grid-template-columns:1fr;gap:8px;margin-bottom:8px}
 dl{display:grid;grid-template-columns:130px 1fr;gap:6px 10px;font-size:14px}dt{color:var(--mut)}dd{margin:0;overflow-wrap:anywhere}
 .acts{display:grid;gap:8px;margin-top:12px}
@@ -67,7 +69,7 @@ dl{display:grid;grid-template-columns:130px 1fr;gap:6px 10px;font-size:14px}dt{c
 <label><input type="radio" name="dm" value="gps"> Current location (I have reached it)</label>
 <label><input type="radio" name="dm" value="manual" checked> Enter manually</label></div>
 <div style="position:relative"><input id="dest" placeholder="Start typing a place or address" maxlength="200" aria-label="Destination" autocomplete="off"><div class="sg hide" id="sg" role="listbox"></div></div><div class="mut hide" id="gpsn"></div></div>
-<div class="f"><label for="trip">Trip</label><select id="trip"><option value="1">One way (office → destination)</option><option value="2">Round trip (there and back)</option></select></div>
+<div class="f"><label for="trip">Trip</label><select id="trip"><option value="1">One way</option><option value="2">Round trip (there and back)</option></select></div>
 <div class="hide" id="mkm"><label for="manualKm">One-way distance in km (manual; flagged for review)</label><input type="number" id="manualKm" min="0" step="0.1" inputmode="decimal"></div>
 <div class="box hide" id="chg" aria-live="polite"></div>
 </div>
@@ -89,7 +91,7 @@ dl{display:grid;grid-template-columns:130px 1fr;gap:6px 10px;font-size:14px}dt{c
 </div>
 </div>
 <script>
-const API_URL='https://script.google.com/macros/s/AKfycbxhFs0SJ42JX1uNeYFIS61dFRUs5sgRZL0drtjKXRnDDNFwfSPs-LJeS5mGTbcCpbF5/exec',MAPS_KEY='';   // not secrets. MAPS_KEY (optional) turns on Google Places suggestions
+const API_URL='PASTE_APPS_SCRIPT_EXEC_URL',MAPS_KEY='';   // not secrets. MAPS_KEY (optional) turns on Google Places suggestions
 let sess='';try{sess=sessionStorage.getItem('dscda_s')||''}catch(e){}
 const setSess=t=>{sess=t;try{t?sessionStorage.setItem('dscda_s',t):sessionStorage.removeItem('dscda_s')}catch(e){}};
 const $=s=>document.querySelector(s),$$=s=>[...document.querySelectorAll(s)];
@@ -114,7 +116,7 @@ function init(){
  const u=B.user,c=B.cfg;show($('#app'),1);$('#me').innerHTML=`${esc(u.name)}<br><span class="mut">${esc(u.role)} · <a href="#" id="so">Sign out</a></span>`;$('#so').onclick=e=>{e.preventDefault();setSess('');location.reload()};
  setInterval(()=>{if(document.hidden)return;const t=document.querySelector('.tabs .on').dataset.t;if((t==='mine'||t==='rev')&&$('#det').classList.contains('hide'))load(t)},300000);
  fillSel($('#person'),c.people,'Select person');fillSel($('#dept'),c.depts,'Select department');fillSel($('#nature'),c.natures,'Select nature');
- if(u.role==='EMPLOYEE'){$('#person').value=u.person;$('#person').disabled=true}
+ if(u.role==='EMPLOYEE'){fillSel($('#person'),[u.person]);$('#person').disabled=true;$('#person').insertAdjacentHTML('afterend','<div class="lock">Set by your login</div>');if(!u.person)msg($('#fm'),'Your login has no person name set. Ask the administrator to fill the Person column on the Users tab.','e')}
  $('#modes').innerHTML=c.modes.map(m=>`<label><input type="checkbox" value="${esc(m)}"> ${esc(m)}</label>`).join('');
  $('#date').value=new Date().toLocaleDateString('en-CA',{timeZone:'Asia/Kolkata'});$('#date').max=$('#date').value;
  $('#startTxt').textContent=c.office;token=newToken();
@@ -224,7 +226,7 @@ async function submit(e){e.preventDefault();const fm=$('#fm'),m=modes(),n=$('#na
   const r=await call('submitVoucher',{token,person:v('person'),dept:v('dept'),date:v('date'),nature:n,modes:n==='Conveyance'?m:[],
    dest:ROUTE.includes(n)?destVal():'',destLabel:destPick?destPick.label:'',trip:$('#trip').value,manualKm:v('manualKm'),amount:v('amount'),remarks:v('remarks'),reason:v('reason'),files:fl});
   msg(fm,`Voucher submitted. ID: ${r.voucherId}. `+(r.outcome==='AUTO_APPROVED'?'Status: Approved (your claim is within the receipt total). It now goes to Accounts for payment.':'This voucher needs to be checked by Accounts. '+(r.note||'')),r.outcome==='AUTO_APPROVED'?'s':'w');$('#f').reset();files=[];km='';token=newToken();
-  if(B.user.role==='EMPLOYEE')$('#person').value=B.user.person;$('#date').value=$('#date').max;rt=null;destGps='';destPick=null;$('#dest').readOnly=false;show($('#gpsn'),0);drawFiles();fm.scrollIntoView({behavior:'smooth'})
+  $('#date').value=$('#date').max;rt=null;destGps='';destPick=null;$('#dest').readOnly=false;show($('#gpsn'),0);drawFiles();fm.scrollIntoView({behavior:'smooth'})
  }catch(x){bad(x.message+' Nothing was submitted twice; you can press Submit again.')}
  finally{btn.disabled=false;btn.textContent='Submit voucher'}}
 
