@@ -288,7 +288,7 @@ function open(id){const d=$('#det'),t=document.querySelector('.tabs .on').datase
   ${v.canAct?`<div style="margin-top:14px">${st==='SUBMITTED'?`<div class="g2"><div class="f"><label for="ver">Verified amount (₹)</label><input type="number" id="ver" step="0.01" value="${esc(v.amount)}"></div>
   ${own?`<div class="f"><label for="rkm">Confirmed distance (km)</label><input type="number" id="rkm" step="0.1" value="${esc(v.km)}"></div>`:''}</div>`:''}
   <label class="lb" for="cm">${st==='APPROVED'?'Payment reference':'Comment'} (required to return or reject; also if you change amount or distance)</label><textarea id="cm"></textarea>
-  <div class="acts"><button class="btn" data-a="advance">${lbl}</button>${st!=='APPROVED'?'<button class="btn bad" data-a="return">Return</button><button class="btn bad" data-a="reject">Reject</button>':''}</div></div>`:''}
+  <div id="dm2" style="margin-top:12px"></div><div class="acts"><button class="btn" data-a="advance">${lbl}</button>${st!=='APPROVED'?'<button class="btn bad" data-a="return">Return</button><button class="btn bad" data-a="reject">Reject</button>':''}</div></div>`:''}
   <h3 style="margin-top:16px">History</h3>${r.hist.map(h=>`<p class="mut">${esc(h.t)} · ${esc(h.by)} · ${esc(h.action)} → ${esc(h.to)} ${esc(h.note)}</p>`).join('')||'<p class="mut">No history yet.</p>'}
   <button class="btn sec" style="margin-top:12px" id="cl">Close</button>`;
   $('#cl').onclick=back;$('#bk').onclick=back;loadReceipts(v.id);
@@ -298,6 +298,6 @@ function open(id){const d=$('#det'),t=document.querySelector('.tabs .on').datase
    if(a==='advance'&&st==='APPROVED'&&!confirm('Mark as paid? Only do this once payment has been made.'))return;
    $$('#det button').forEach(x=>x.disabled=true);
    call('actOnVoucher',{id:v.id,action:a,comment:$('#cm').value,verified:$('#ver')?$('#ver').value:'',km:$('#rkm')&&$('#rkm').value!==String(v.km)?$('#rkm').value:''})
-    .then(()=>back()).catch(e=>{msg($('#dm'),e.message,'e');$$('#det button').forEach(x=>x.disabled=false)})})
+    .then(()=>back()).catch(e=>{msg($('#dm'),e.message,'e');msg($('#dm2'),e.message,'e');$('#dm2').scrollIntoView({behavior:'smooth',block:'center'});$$('#det button').forEach(x=>x.disabled=false)})})
  }).catch(e=>d.innerHTML=`<button type="button" class="btn sec" onclick="back()">← Back to list</button><div class="msg e" style="margin-top:10px">${esc(e.message)}</div>`)}
 </script></body></html>
