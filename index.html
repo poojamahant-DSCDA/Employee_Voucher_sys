@@ -165,7 +165,7 @@ const scannable=f=>f.size<=B.cfg.maxBytes&&B.cfg.types.includes(f.type);
 const useBtn=a=>` <button type="button" class="btn sec" style="padding:4px 10px;font-size:13px" data-amt="${a}">Use</button>`;
 function drawFiles(){const t=files.reduce((a,f)=>a+f.size,0);
  $('#fl').innerHTML=files.map((f,i)=>{const s=f.scan;let st='';
-  if(s)st=s.s==='wait'?'Reading receipt…':s.s==='OK'?(s.amount!=null?`Receipt shows <b>${inr(s.amount)}</b> (${esc(s.level)})${s.c&&s.c.length>1?' · also saw '+s.c.filter(x=>x!==s.amount).map(inr).join(', '):''}${useBtn(s.amount)}`:'No amount found. Enter it manually.'):s.why==='SERVICE_OFF'?'Automatic reading is not switched on yet (administrator: add the Drive API service in Apps Script). Enter the amount manually.':s.why==='ERROR'?'Could not read this file. Enter the amount manually.':'Automatic reading unavailable. Enter the amount manually.';
+  if(s)st=s.s==='wait'?'Reading receipt…':s.s==='OK'?(s.amount!=null?`Receipt shows <b>${inr(s.amount)}</b> (${esc(s.level)})${s.c&&s.c.length>1?' · also saw '+s.c.filter(x=>x!==s.amount).map(inr).join(', '):''}${useBtn(s.amount)}`:'No amount found. Enter it manually.'):s.why==='SERVICE_OFF'?'Automatic reading is not switched on yet (administrator: add the Drive API service in Apps Script). Enter the amount manually.':s.why==='ERROR'?'Could not read this file. Enter the amount manually.'+(s.err?` <br>Admin detail: ${esc(s.err)}`:''):'Automatic reading unavailable. Enter the amount manually.';
   return `<div><span>${esc(f.name)} (${(f.size/1048576).toFixed(2)} MB)${st?`<br><small class="mut">${st}</small>`:''}</span><button type="button" data-i="${i}" aria-label="Remove ${esc(f.name)}">Remove</button></div>`}).join('')+(t>B.cfg.maxBytes?'<div class="msg e">Total is over 10 MB. Remove a file.</div>':'');
  $$('#fl button[data-i]').forEach(b=>b.onclick=()=>{files.splice(+b.dataset.i,1);drawFiles()});
  const ok=files.filter(f=>f.scan&&f.scan.s==='OK'&&f.scan.amount!=null),sum=Math.round(ok.reduce((a,f)=>a+f.scan.amount,0)*100)/100,box=$('#ocr'),cl=Number($('#amount').value);
@@ -176,7 +176,7 @@ function drawFiles(){const t=files.reduce((a,f)=>a+f.size,0);
 let scanning=false;
 async function scanAll(){if(scanning)return;scanning=true;
  try{for(const f of files){if(f.scan||!scannable(f))continue;f.scan={s:'wait'};drawFiles();
-  try{const r=await call('scanReceipt',{name:f.name,mime:f.type,data:await b64(f)});f.scan={s:r.status,why:r.why,amount:r.amount,level:r.level,c:r.cands}}catch(e){f.scan={s:'ERR'}}drawFiles()}}
+  try{const r=await call('scanReceipt',{name:f.name,mime:f.type,data:await b64(f)});f.scan={s:r.status,why:r.why,err:r.err,amount:r.amount,level:r.level,c:r.cands}}catch(e){f.scan={s:'ERR'}}drawFiles()}}
  finally{scanning=false}
  if(files.some(f=>!f.scan&&scannable(f)))scanAll()}
 const b64=f=>new Promise((res,rej)=>{const r=new FileReader();r.onload=()=>res(r.result.split(',')[1]);r.onerror=rej;r.readAsDataURL(f)});
