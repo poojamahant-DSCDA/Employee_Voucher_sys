@@ -91,7 +91,7 @@ dl{display:grid;grid-template-columns:130px 1fr;gap:6px 10px;font-size:14px}dt{c
 </div>
 </div>
 <script>
-const API_URL='PASTE_APPS_SCRIPT_EXEC_URL',MAPS_KEY='';   // not secrets. MAPS_KEY (optional) turns on Google Places suggestions
+const API_URL='https://script.google.com/macros/s/AKfycbxhFs0SJ42JX1uNeYFIS61dFRUs5sgRZL0drtjKXRnDDNFwfSPs-LJeS5mGTbcCpbF5/exec',MAPS_KEY='';   // not secrets. MAPS_KEY (optional) turns on Google Places suggestions
 let sess='';try{sess=sessionStorage.getItem('dscda_s')||''}catch(e){}
 const setSess=t=>{sess=t;try{t?sessionStorage.setItem('dscda_s',t):sessionStorage.removeItem('dscda_s')}catch(e){}};
 const $=s=>document.querySelector(s),$$=s=>[...document.querySelectorAll(s)];
@@ -106,9 +106,10 @@ const fillSel=(el,arr,ph)=>{el.innerHTML=(ph?`<option value="">${ph}</option>`:'
 const show=(el,on)=>el.classList.toggle('hide',!on);
 const msg=(el,t,c)=>{el.innerHTML=t?`<div class="msg ${c}" role="alert">${esc(t)}</div>`:''};
 
-function login(n){show($('#login'),1);$('#ln').textContent=n||'';if(!$('#lname').options.length)call('loginNames').then(r=>fillSel($('#lname'),r.names,'Select your name')).catch(e=>$('#ln').textContent=e.message)}
-$('#login').onsubmit=e=>{e.preventDefault();const b=$('#lgo');b.disabled=true;$('#ln').textContent='';
- call('login',$('#lname').value,$('#lpin').value).then(r=>{setSess(r.token);$('#lpin').value='';show($('#login'),0);show($('#err'),0);B?0:start()})
+function login(n){show($('#login'),1);$('#ln').textContent=n||'';if(!$('#lname').options.length)call('loginNames').then(r=>{fillSel($('#lname'),r.names,'Select your name');if(!r.names.length)$('#ln').textContent='No one can sign in yet. The administrator must add users on the Users tab, type a PIN for each, and run hashPins().'}).catch(e=>$('#ln').textContent=e.message+' Reload the page to try again.')}
+$('#login').onsubmit=e=>{e.preventDefault();if(!$('#lname').value){$('#ln').textContent='Select your name first.';return}if(!$('#lpin').value.trim()){$('#ln').textContent='Enter your PIN.';return}
+ const b=$('#lgo');b.disabled=true;$('#ln').textContent='';
+ call('login',$('#lname').value,$('#lpin').value.trim()).then(r=>{setSess(r.token);$('#lpin').value='';show($('#login'),0);show($('#err'),0);B?0:start()})
  .catch(x=>$('#ln').textContent=x.message).finally(()=>b.disabled=false)};
 function start(){call('boot').then(r=>{B=r;init()}).catch(e=>{if(!sess)return;const x=$('#err');show(x,1);x.innerHTML=`<h2>Access needed</h2><p>${esc(e.message)}</p>`;login()})}
 sess?start():login();
