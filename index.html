@@ -30,7 +30,7 @@ textarea{min-height:90px;resize:vertical}
 .btn.bad{background:#fff;color:var(--err);border:1px solid var(--err)}.btn[disabled]{opacity:.55;cursor:wait}
 .box{background:var(--pale);border:1px solid var(--bd);border-radius:12px;padding:12px 14px;font-size:14px;margin-top:8px}
 .note{background:var(--pale);border-left:4px solid var(--blue);border-radius:12px;padding:12px 14px;font-size:14px;margin-top:14px}
-.msg{padding:12px 14px;border-radius:12px;margin-bottom:12px;font-size:15px}.msg.e{background:#FDECEA;color:var(--err)}.msg.s{background:#E6F4EC;color:var(--ok)}
+.msg{padding:12px 14px;border-radius:12px;margin-bottom:12px;font-size:15px}.msg.e{background:#FDECEA;color:var(--err)}.msg.s{background:#E6F4EC;color:var(--ok)}.msg.w{background:#FFF4DC;color:var(--warn)}
 .fl{background:#FFF4DC;color:var(--warn);border-radius:10px;padding:6px 10px;font-size:13px;margin-top:6px}
 .files div{display:flex;justify-content:space-between;align-items:center;gap:8px;padding:8px 12px;border:1px solid var(--bd);border-radius:10px;margin-top:6px;font-size:14px}
 .files button{border:0;background:none;color:var(--err);font-weight:700;cursor:pointer;padding:6px 10px}
@@ -170,9 +170,16 @@ function drawFiles(){const t=files.reduce((a,f)=>a+f.size,0);
  $$('#fl button[data-i]').forEach(b=>b.onclick=()=>{files.splice(+b.dataset.i,1);drawFiles()});
  const ok=files.filter(f=>f.scan&&f.scan.s==='OK'&&f.scan.amount!=null),sum=Math.round(ok.reduce((a,f)=>a+f.scan.amount,0)*100)/100,box=$('#ocr'),cl=Number($('#amount').value);
  if(!ok.length)show(box,0);else{show(box,1);
-  box.innerHTML=`Receipts read: <b>${inr(sum)}</b> in total. Automatic reading can be wrong, so check it against the bill.${ok.length>1?useBtn(sum):''}${cl>0&&Math.abs(cl-sum)>1?`<div class="fl">Receipt shows ${inr(sum)} but you entered ${inr(cl)}. The checker will see this difference.</div>`:''}`}
+  box.innerHTML=`Receipts read: <b>${inr(sum)}</b> in total. Automatic reading can be wrong, so check it against the bill.${ok.length>1?useBtn(sum):''}${verdict(cl,sum)}`}
  $$('#fl button[data-amt],#ocr button[data-amt]').forEach(b=>b.onclick=()=>{$('#amount').value=b.dataset.amt;drawFiles()});
  sync();scanAll()}
+function verdict(cl,sum){if(!(cl>0)||files.some(f=>!f.scan||f.scan.s==='wait'))return'';
+ const m=modes(),own=$('#nature').value==='Conveyance'&&(m.includes('Own Motorcycle')||m.includes('Own car'));
+ const all=files.every(f=>f.scan.s==='OK'&&f.scan.amount!=null&&f.scan.level==='likely');
+ if(own)return'<div class="fl">Own vehicle claims are always checked.</div>';
+ if(!all)return'<div class="fl">This voucher will need to be checked: not every receipt was read with confidence.</div>';
+ if(cl>sum+0.005)return`<div class="fl">Your claim ${inr(cl)} is more than the receipt total ${inr(sum)}. This voucher will need to be checked.</div>`;
+ return'<div class="msg s" style="margin:8px 0 0">Your claim is within the receipt total, so this voucher will be approved automatically.</div>'}
 let scanning=false;
 async function scanAll(){if(scanning)return;scanning=true;
  try{for(const f of files){if(f.scan||!scannable(f))continue;f.scan={s:'wait'};drawFiles();
@@ -195,12 +202,12 @@ async function submit(e){e.preventDefault();const fm=$('#fm'),m=modes(),n=$('#na
  try{const fl=await Promise.all(files.map(async f=>({name:f.name,mime:f.type,data:await b64(f)})));
   const r=await call('submitVoucher',{token,person:v('person'),dept:v('dept'),date:v('date'),nature:n,modes:n==='Conveyance'?m:[],
    dest:ROUTE.includes(n)?destVal():'',trip:$('#trip').value,manualKm:v('manualKm'),amount:v('amount'),remarks:v('remarks'),reason:v('reason'),files:fl});
-  msg(fm,`Voucher submitted. ID: ${r.voucherId}`,'s');$('#f').reset();files=[];km='';token=newToken();
+  msg(fm,`Voucher submitted. ID: ${r.voucherId}. `+(r.outcome==='AUTO_APPROVED'?'Status: Approved (your claim is within the receipt total). It now goes to Accounts for payment.':'This voucher needs to be checked by Accounts. '+(r.note||'')),r.outcome==='AUTO_APPROVED'?'s':'w');$('#f').reset();files=[];km='';token=newToken();
   if(B.user.role==='EMPLOYEE')$('#person').value=B.user.person;$('#date').value=$('#date').max;rt=null;destGps='';$('#dest').readOnly=false;show($('#gpsn'),0);drawFiles();fm.scrollIntoView({behavior:'smooth'})
  }catch(x){bad(x.message+' Nothing was submitted twice; you can press Submit again.')}
  finally{btn.disabled=false;btn.textContent='Submit voucher'}}
 
-const rowH=v=>`<div class="row" data-id="${esc(v.id)}" tabindex="0"><div><b>${esc(v.id)}</b>${esc(v.person)} · ${esc(v.nature)} · ${esc(v.date)}<br><span class="mut">${esc(v.desc).slice(0,70)}</span></div><div style="text-align:right"><b>${inr(v.amount)}</b><span class="pill ${esc(v.status)}">${esc(v.status)}</span></div></div>`;
+const rowH=v=>`<div class="row" data-id="${esc(v.id)}" tabindex="0"><div><b>${esc(v.id)}</b>${esc(v.person)} · ${esc(v.nature)} · ${esc(v.date)}<br><span class="mut">${esc(v.desc).slice(0,70)}</span></div><div style="text-align:right"><b>${inr(v.amount)}</b><span class="pill ${esc(v.status)}">${esc(v.status)}</span>${v.auto?'<br><small class="mut">auto-approved</small>':v.status==='SUBMITTED'?'<br><small class="mut">needs checking</small>':''}</div></div>`;
 function list(el,items,empty){el.innerHTML=items.length?items.map(rowH).join(''):`<p class="mut">${empty}</p>`;
  $$('#'+el.id+' .row').forEach(r=>{r.onclick=()=>open(r.dataset.id);r.onkeydown=e=>{if(e.key==='Enter')open(r.dataset.id)}})}
 function loadMine(){const el=$('#mineL');el.innerHTML='<p class="mut">Loading…</p>';
@@ -222,6 +229,7 @@ function open(id){const d=$('#det');show(d,1);d.innerHTML='<p class="mut">Loadin
   <dt>Remarks</dt><dd>${esc(v.desc)||'—'}</dd>${v.ocr!==''?`<dt>Receipt reads</dt><dd>${inr(v.ocr)} (automatic, unverified)<br><span class="mut">${esc(v.ocrDetail)}</span></dd>`:''}<dt>Receipts</dt><dd>${v.link?`<a href="${esc(v.link)}" target="_blank" rel="noopener">Open folder</a> (needs Drive access)`:'None on file'}</dd>
   ${v.checkerBy?`<dt>Checked by</dt><dd>${esc(v.checkerBy)} ${esc(v.checkerNote)}</dd>`:''}${v.mdBy?`<dt>MD</dt><dd>${esc(v.mdBy)} ${esc(v.mdNote)}</dd>`:''}</dl>
   ${metro?`<div class="box"><label class="lb" for="mk">Metro fare check: trip distance (km) from the DMRC fare calculator</label><input type="number" id="mk" step="0.1" min="0" style="max-width:160px" value="${v.km!==''?(v.trip==='ROUND TRIP'?v.km/2:v.km):''}"> <span id="mf"></span><div class="mut">Reference for one trip on ${esc(v.date)} (${metroDay(v.date)?'Sunday/holiday':'Mon–Sat'} fares). Compare with the tickets; it does not change any amount.</div></div>`:''}
+  ${v.auto?`<div class="msg s" style="margin-top:10px">Approved automatically: ${esc(v.autoNote)}</div>`:''}
   ${v.flags.map(f=>`<div class="fl">⚠ ${esc(f)}</div>`).join('')}
   ${v.canAct?`<div style="margin-top:14px">${st==='SUBMITTED'?`<div class="g2"><div class="f"><label for="ver">Verified amount (₹)</label><input type="number" id="ver" step="0.01" value="${esc(v.amount)}"></div>
   ${own?`<div class="f"><label for="rkm">Confirmed distance (km)</label><input type="number" id="rkm" step="0.1" value="${esc(v.km)}"></div>`:''}</div>`:''}
