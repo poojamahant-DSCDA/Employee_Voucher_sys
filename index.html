@@ -52,6 +52,7 @@ textarea{min-height:90px;resize:vertical}
 dl{display:grid;grid-template-columns:110px minmax(0,1fr);gap:6px 10px;font-size:14px}@media(max-width:420px){dl{grid-template-columns:1fr;gap:0}dt{margin-top:8px;font-size:12px}}dt{color:var(--mut)}dd{margin:0;overflow-wrap:anywhere}
 .acts{display:grid;gap:8px;margin-top:12px}
 .hide{display:none!important}
+.rcf{margin-top:10px}.rcf img{max-width:100%;border:1px solid var(--bd);border-radius:12px;display:block;margin:6px 0}.rcf iframe{width:100%;height:480px;border:1px solid var(--bd);border-radius:12px;margin:6px 0}
 @media(min-width:640px){.fb{grid-template-columns:repeat(5,minmax(0,1fr))}.g2{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:0 14px}.flt{grid-template-columns:200px 1fr}.acts{grid-template-columns:2fr 1fr 1fr}}
 </style></head><body><div class="wrap">
 <div class="bar"><div class="logo">DC</div><div><b>DSCDA</b><small>Voucher desk</small></div><div class="me" id="me"></div></div>
@@ -257,6 +258,16 @@ function load(id){const el=$('#'+id+'L'),g=k=>($('#'+id+k)||{}).value||'',rv=id=
  .catch(e=>el.innerHTML=`<div class="msg e">${esc(e.message)}</div>`)}
 
 const metroDay=d=>new Date(d+'T00:00:00Z').getUTCDay()===0||B.cfg.holidays.includes(d);
+function b2url(b64,mime){const s=atob(b64),a=new Uint8Array(s.length);for(let i=0;i<s.length;i++)a[i]=s.charCodeAt(i);return URL.createObjectURL(new Blob([a],{type:mime}))}
+async function loadReceipts(id){
+ try{const r=await call('getReceipts',id);if(!$('#rc'))return;
+  if(!r.files.length){$('#rc').innerHTML='<p class="mut">No receipt files on record.</p>';return}
+  $('#rc').innerHTML=r.files.map(f=>`<div class="rcf" id="rf${f.i}"><b>${esc(f.name)}</b><p class="mut">Loading…</p></div>`).join('');
+  for(const f of r.files){const el=$('#rf'+f.i);if(!el)return;
+   try{const x=await call('getReceiptFile',id,f.i),u=b2url(x.data,x.mime);
+    el.innerHTML=`<b>${esc(f.name)}</b>`+(x.mime==='application/pdf'?`<iframe src="${u}" title="${esc(f.name)}"></iframe>`:`<img src="${u}" alt="${esc(f.name)}">`)+`<a href="${u}" target="_blank" rel="noopener">Open full size</a>`}
+   catch(e){el.innerHTML=`<b>${esc(f.name)}</b><div class="msg e">${esc(e.message)}</div>`}}
+ }catch(e){if($('#rc'))$('#rc').innerHTML=`<div class="msg e">${esc(e.message)}</div>`}}
 function back(){const d=$('#det'),t=document.querySelector('.tabs .on').dataset.t;show(d,0);show($('#'+t),1);load(t);window.scrollTo(0,0)}
 function open(id){const d=$('#det'),t=document.querySelector('.tabs .on').dataset.t;show($('#'+t),0);show(d,1);d.innerHTML='<p class="mut">Loading…</p>';window.scrollTo(0,0);
  call('getVoucher',id).then(r=>{const v=r.v,st=v.status,own=/Own Motorcycle|Own car/.test(v.modes),metro=/Metro/.test(v.modes);
@@ -271,13 +282,14 @@ function open(id){const d=$('#det'),t=document.querySelector('.tabs .on').datase
   ${metro?`<div class="box"><label class="lb" for="mk">Metro fare check: trip distance (km) from the DMRC fare calculator</label><input type="number" id="mk" step="0.1" min="0" style="max-width:160px" value="${v.km!==''?(v.trip==='ROUND TRIP'?v.km/2:v.km):''}"> <div id="mf" style="margin-top:6px"></div><div class="mut">Reference for one trip on ${esc(v.date)} (${metroDay(v.date)?'Sunday/holiday':'Mon–Sat'} fares). Compare with the tickets; it does not change any amount.</div></div>`:''}
   ${v.auto?`<div class="msg s" style="margin-top:10px">Approved automatically: ${esc(v.autoNote)}</div>`:''}
   ${v.flags.map(f=>`<div class="fl">⚠ ${esc(f)}</div>`).join('')}
+  <h3 style="margin-top:16px">Receipts</h3><div id="rc"><p class="mut">Loading receipts…</p></div>
   ${v.canAct?`<div style="margin-top:14px">${st==='SUBMITTED'?`<div class="g2"><div class="f"><label for="ver">Verified amount (₹)</label><input type="number" id="ver" step="0.01" value="${esc(v.amount)}"></div>
   ${own?`<div class="f"><label for="rkm">Confirmed distance (km)</label><input type="number" id="rkm" step="0.1" value="${esc(v.km)}"></div>`:''}</div>`:''}
   <label class="lb" for="cm">${st==='APPROVED'?'Payment reference':'Comment'} (required to return or reject; also if you change amount or distance)</label><textarea id="cm"></textarea>
   <div class="acts"><button class="btn" data-a="advance">${lbl}</button>${st!=='APPROVED'?'<button class="btn bad" data-a="return">Return</button><button class="btn bad" data-a="reject">Reject</button>':''}</div></div>`:''}
   <h3 style="margin-top:16px">History</h3>${r.hist.map(h=>`<p class="mut">${esc(h.t)} · ${esc(h.by)} · ${esc(h.action)} → ${esc(h.to)} ${esc(h.note)}</p>`).join('')||'<p class="mut">No history yet.</p>'}
   <button class="btn sec" style="margin-top:12px" id="cl">Close</button>`;
-  $('#cl').onclick=back;$('#bk').onclick=back;
+  $('#cl').onclick=back;$('#bk').onclick=back;loadReceipts(v.id);
   if($('#mk'))$('#mk').oninput=()=>{const k=Number($('#mk').value);const s=B.cfg.metro.find(x=>k<=x[0]);$('#mf').innerHTML=k>0&&s?`Fare slab: <b>${inr(metroDay(v.date)?s[2]:s[1])}</b> per trip`:''};if($('#mk'))$('#mk').oninput();
   $$('#det [data-a]').forEach(b=>b.onclick=()=>{const a=b.dataset.a;
    if(a!=='advance'&&!confirm(`${a==='reject'?'Reject':'Return'} ${v.id}? This is recorded in the audit history.`))return;
