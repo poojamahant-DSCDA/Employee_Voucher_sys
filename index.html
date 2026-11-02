@@ -58,21 +58,21 @@ dl{display:grid;grid-template-columns:130px 1fr;gap:6px 10px;font-size:14px}dt{c
 <div class="f"><label class="req" for="dept">Department</label><select id="dept"></select></div>
 <div class="f"><label class="req" for="date">Voucher date</label><input type="date" id="date"></div>
 <div class="f"><label class="req" for="nature">Nature of voucher</label><select id="nature"></select></div></div>
-<div id="conv" class="hide">
-<div class="f"><span class="lb req">Type of conveyance</span><div class="chk" id="modes"></div></div>
-<div class="f"><span class="lb">Starting point</span><div class="rad">
-<label><input type="radio" name="sm" value="office" checked> Office (Sagar Apartments)</label>
-<label><input type="radio" name="sm" value="gps"> Current location</label>
-<label><input type="radio" name="sm" value="manual"> Enter manually</label></div>
-<input id="start" readonly aria-label="Starting point"><div class="mut hide" id="gpsn"></div></div>
-<div class="f"><label for="dest">Destination</label><input id="dest" placeholder="Address or place name" maxlength="200"></div>
-<div class="f hide" id="bike"><button type="button" class="btn sec" id="calc">Calculate distance</button>
-<div class="box hide" id="km"></div>
-<div class="hide" id="mkm" style="margin-top:8px"><label for="manualKm">Distance in km (manual — will be flagged for review)</label><input type="number" id="manualKm" min="0" step="0.1" inputmode="decimal"></div></div>
+<div id="modesBox" class="f hide"><span class="lb req">Type of conveyance</span><div class="chk" id="modes"></div></div>
+<div id="route" class="hide">
+<div class="f"><span class="lb">Starting point (always the office)</span><div class="box" id="startTxt" style="margin-top:0"></div></div>
+<div class="f"><span class="lb">Destination</span><div class="rad">
+<label><input type="radio" name="dm" value="gps"> Current location (I have reached it)</label>
+<label><input type="radio" name="dm" value="manual" checked> Enter manually</label></div>
+<input id="dest" placeholder="Address or place name" maxlength="200" aria-label="Destination"><div class="mut hide" id="gpsn"></div></div>
+<div class="f"><label for="trip">Trip</label><select id="trip"><option value="1">One way (office → destination)</option><option value="2">Round trip (there and back)</option></select></div>
+<div class="hide" id="mkm"><label for="manualKm">One-way distance in km (manual; flagged for review)</label><input type="number" id="manualKm" min="0" step="0.1" inputmode="decimal"></div>
+<div class="box hide" id="chg" aria-live="polite"></div>
 </div>
 <div class="f"><label for="file">Bills / receipts (PDF, JPG, PNG — up to 10 MB total)</label>
 <input type="file" id="file" accept="application/pdf,image/jpeg,image/png" multiple><div class="files" id="fl"></div>
 <div class="mut hide" id="billn" style="margin-top:6px">A bill is required for Metro or Cab.</div></div>
+<div class="box hide" id="ocr" aria-live="polite" style="margin:-4px 0 16px"></div>
 <div class="f hide" id="rs"><label class="req" for="reason">Reason for missing receipt</label><input id="reason" maxlength="500"></div>
 <div class="g2"><div class="f"><label class="req" for="amount">Amount claimed (₹)</label><input type="number" id="amount" min="0" step="0.01" inputmode="decimal"></div></div>
 <div class="f"><label for="remarks">Remarks / purpose</label><textarea id="remarks" maxlength="1000" placeholder="Where, why, and what the amount covers"></textarea></div>
@@ -90,7 +90,7 @@ dl{display:grid;grid-template-columns:130px 1fr;gap:6px 10px;font-size:14px}dt{c
 </div>
 </div>
 <script>
-const API_URL='https://script.google.com/macros/s/AKfycbwfUUGQwZ16YMPHw9HD1r-8xpYp0qCyfZEtZipS9fN8piHl2eDKfhsjyA0FsS-p77RE/exec';   // the only setting; not a secret
+const API_URL='https://script.google.com/macros/s/AKfycbxhFs0SJ42JX1uNeYFIS61dFRUs5sgRZL0drtjKXRnDDNFwfSPs-LJeS5mGTbcCpbF5/exec';   // the only setting; not a secret
 let sess='';try{sess=sessionStorage.getItem('dscda_s')||''}catch(e){}
 const setSess=t=>{sess=t;try{t?sessionStorage.setItem('dscda_s',t):sessionStorage.removeItem('dscda_s')}catch(e){}};
 const $=s=>document.querySelector(s),$$=s=>[...document.querySelectorAll(s)];
@@ -118,36 +118,67 @@ function init(){
  if(u.role==='EMPLOYEE'){$('#person').value=u.person;$('#person').disabled=true}
  $('#modes').innerHTML=c.modes.map(m=>`<label><input type="checkbox" value="${esc(m)}"> ${esc(m)}</label>`).join('');
  $('#date').value=new Date().toLocaleDateString('en-CA',{timeZone:'Asia/Kolkata'});$('#date').max=$('#date').value;
- $('#start').value=c.office;token=newToken();
+ $('#startTxt').textContent=c.office;token=newToken();
  if(u.role!=='EMPLOYEE')show($('#tRev'),1);
  $$('.tabs button').forEach(b=>b.onclick=()=>tab(b.dataset.t));
  $('#nature').onchange=sync;$('#modes').onchange=sync;
- $$('[name=sm]').forEach(r=>r.onchange=startMode);
- $('#calc').onclick=calc;$('#manualKm').oninput=showKm;
- $('#file').onchange=e=>{files.push(...e.target.files);e.target.value='';drawFiles()};
+ $$('[name=dm]').forEach(r=>r.onchange=destMode);$('#dest').oninput=()=>{rt=null;clearTimeout(tm2);tm2=setTimeout(calc,900)};
+ $('#trip').onchange=()=>charges();$('#date').onchange=()=>charges();
+ $('#manualKm').oninput=()=>charges();
+ $('#file').onchange=e=>{files.push(...e.target.files);e.target.value='';drawFiles()};$('#amount').oninput=()=>drawFiles();
  $('#f').onsubmit=submit;$('#st').onchange=loadRev;let tm;$('#q').oninput=()=>{clearTimeout(tm);tm=setTimeout(loadRev,350)};
 }
 function tab(t){$$('.tabs button').forEach(b=>b.classList.toggle('on',b.dataset.t===t));['new','mine','rev'].forEach(s=>show($('#'+s),s===t));show($('#det'),0);
  if(t==='mine')loadMine();if(t==='rev')loadRev()}
 const modes=()=>$$('#modes input:checked').map(i=>i.value);
-function sync(){
- const conv=$('#nature').value==='Conveyance',m=modes();show($('#conv'),conv);
- const bike=conv&&(m.includes('Own Motorcycle')||m.includes('Own car'));show($('#bike'),bike);
- show($('#billn'),conv&&(m.includes('Metro')||m.includes('Cab')));show($('#rs'),!files.length);if(!bike){km='';show($('#km'),0);show($('#mkm'),0)}}
-function startMode(){const v=document.querySelector('[name=sm]:checked').value,s=$('#start');show($('#gpsn'),0);
- if(v==='office'){s.value=B.cfg.office;s.readOnly=true}
- else if(v==='manual'){s.value='';s.readOnly=false;s.focus()}
- else{s.value='';s.readOnly=true;const n=$('#gpsn');show(n,1);n.textContent='Asking for your location…';
-  navigator.geolocation?navigator.geolocation.getCurrentPosition(p=>{s.value=p.coords.latitude.toFixed(6)+','+p.coords.longitude.toFixed(6);n.textContent='Location captured. It only sets the starting point; it does not prove the journey.'},
-  ()=>{n.textContent='Location unavailable or blocked. Choose "Enter manually" instead.'},{timeout:15000}):n.textContent='This browser cannot share location. Choose "Enter manually".'}}
-function showKm(){const k=Number($('#manualKm').value)||km;const b=$('#km');if(!k){show(b,0);return}
- show(b,1);b.innerHTML=`<b>${k} km</b> × ₹${B.cfg.rate} = <b>${inr(Math.round(k*B.cfg.rate*100)/100)}</b> suggested for your own vehicle<br><span class="mut">Source: ${$('#manualKm').value?'manual entry (flagged for review)':'Google Maps driving route'}. Your claimed amount is not changed; the reviewer confirms.</span>`}
-function calc(){const b=$('#calc');b.disabled=true;msg($('#fm'),'');
- call('calcRoute',$('#start').value,$('#dest').value).then(r=>{km=r.km;$('#manualKm').value='';show($('#mkm'),0);showKm()})
- .catch(e=>{km='';show($('#mkm'),1);showKm();msg($('#fm'),e.message,'e')}).finally(()=>b.disabled=false)}
+const ROUTE=['Conveyance','PORTER','COURIER','POSTAGE'];let rt=null,destGps='',seq=0,tm2;
+const destVal=()=>document.querySelector('[name=dm]:checked').value==='gps'?destGps:$('#dest').value.trim();
+function sync(){const n=$('#nature').value,conv=n==='Conveyance',m=modes(),r=ROUTE.includes(n);
+ show($('#modesBox'),conv);show($('#route'),r);show($('#billn'),conv&&(m.includes('Metro')||m.includes('Cab')));show($('#rs'),!files.length);
+ if(!r){rt=null;destGps=''}charges()}
+function destMode(){const g=document.querySelector('[name=dm]:checked').value==='gps',d=$('#dest'),n=$('#gpsn');rt=null;destGps='';seq++;d.value='';d.readOnly=g;show(n,g);show($('#mkm'),0);
+ if(!g){charges();d.focus();return}
+ n.textContent='Getting your location…';
+ if(!navigator.geolocation){n.textContent='This browser cannot share location. Choose "Enter manually".';return}
+ navigator.geolocation.getCurrentPosition(p=>{destGps=p.coords.latitude.toFixed(6)+','+p.coords.longitude.toFixed(6);d.value='Current location ('+destGps+')';
+  n.textContent='Location captured. It sets the destination only; it is not proof of the journey.';calc()},
+ ()=>{n.textContent='Location unavailable or blocked. Choose "Enter manually" instead.'},{timeout:15000,enableHighAccuracy:true})}
+function calc(){const d=destVal(),my=++seq;show($('#mkm'),0);if(d.length<4){rt=null;charges();return}
+ const b=$('#chg');show(b,1);b.textContent='Calculating distance…';
+ call('calcRoute',d).then(r=>{if(my!==seq)return;rt={km:r.km,label:r.label};if(destGps)$('#dest').value=r.label;charges()})
+ .catch(e=>{if(my!==seq)return;rt=null;show($('#mkm'),1);charges(e.message)})}
+function charges(err){const box=$('#chg'),n=$('#nature').value;if(!ROUTE.includes(n)||!B){show(box,0);return}
+ const man=Number($('#manualKm').value),one=rt?rt.km:(man>0?man:0);
+ if(!one){if(err){show(box,1);box.innerHTML=`<span style="color:var(--err)">${esc(err)}</span>`}else show(box,0);return}
+ const mult=Number($('#trip').value),tot=Math.round(one*mult*100)/100,m=modes(),conv=n==='Conveyance',L=[];
+ const use=a=>` <button type="button" class="btn sec" style="padding:6px 12px;font-size:13px" data-use="${a}">Use as amount</button>`;
+ ['Own Motorcycle','Own car'].filter(x=>conv&&m.includes(x)).forEach(x=>{const a=Math.round(tot*B.cfg.rate*100)/100;
+  L.push(`<div style="margin-top:8px"><b>${x}</b>: ${tot} km × ₹${B.cfg.rate} = <b>${inr(a)}</b>${use(a)}</div>`)});
+ if(conv&&m.includes('Metro')){const s=B.cfg.metro.find(x=>one<=x[0]),f=metroDay($('#date').value)?s[2]:s[1],a=f*mult;
+  L.push(`<div style="margin-top:8px"><b>Metro</b> (indicative): ₹${f} × ${mult} trip${mult>1?'s':''} = <b>${inr(a)}</b>${use(a)}<br><span class="mut">Based on road distance; the real fare depends on the stations. The checker verifies it against your ticket.</span></div>`)}
+ if(conv&&(m.includes('Cab')||m.includes('Auto')))L.push('<div style="margin-top:8px"><b>Cab / Auto</b>: no fixed rate. Enter the fare from your bill.</div>');
+ if(!conv)L.push('<div style="margin-top:8px">Charges: enter the amount as per your bill.</div>');
+ else if(!m.length)L.push('<div style="margin-top:8px">Select a type of conveyance to see charges.</div>');
+ box.innerHTML=`<b>${one} km</b> one way${mult>1?` × 2 = <b>${tot} km</b> round trip`:''} <span class="mut">· ${rt?esc(rt.label):'manual entry (flagged for review)'}</span>`+L.join('');show(box,1);
+ box.querySelectorAll('[data-use]').forEach(b=>b.onclick=()=>{$('#amount').value=b.dataset.use})}
+const scannable=f=>f.size<=B.cfg.maxBytes&&B.cfg.types.includes(f.type);
+const useBtn=a=>` <button type="button" class="btn sec" style="padding:4px 10px;font-size:13px" data-amt="${a}">Use</button>`;
 function drawFiles(){const t=files.reduce((a,f)=>a+f.size,0);
- $('#fl').innerHTML=files.map((f,i)=>`<div><span>${esc(f.name)} (${(f.size/1048576).toFixed(2)} MB)</span><button type="button" data-i="${i}" aria-label="Remove ${esc(f.name)}">Remove</button></div>`).join('')+(t>B.cfg.maxBytes?'<div class="msg e">Total is over 10 MB. Remove a file.</div>':'');
- $$('#fl button').forEach(b=>b.onclick=()=>{files.splice(+b.dataset.i,1);drawFiles()});sync()}
+ $('#fl').innerHTML=files.map((f,i)=>{const s=f.scan;let st='';
+  if(s)st=s.s==='wait'?'Reading receipt…':s.s==='OK'?(s.amount!=null?`Receipt shows <b>${inr(s.amount)}</b> (${esc(s.level)})${s.c&&s.c.length>1?' · also saw '+s.c.filter(x=>x!==s.amount).map(inr).join(', '):''}${useBtn(s.amount)}`:'No amount found. Enter it manually.'):'Automatic reading unavailable. Enter the amount manually.';
+  return `<div><span>${esc(f.name)} (${(f.size/1048576).toFixed(2)} MB)${st?`<br><small class="mut">${st}</small>`:''}</span><button type="button" data-i="${i}" aria-label="Remove ${esc(f.name)}">Remove</button></div>`}).join('')+(t>B.cfg.maxBytes?'<div class="msg e">Total is over 10 MB. Remove a file.</div>':'');
+ $$('#fl button[data-i]').forEach(b=>b.onclick=()=>{files.splice(+b.dataset.i,1);drawFiles()});
+ const ok=files.filter(f=>f.scan&&f.scan.s==='OK'&&f.scan.amount!=null),sum=Math.round(ok.reduce((a,f)=>a+f.scan.amount,0)*100)/100,box=$('#ocr'),cl=Number($('#amount').value);
+ if(!ok.length)show(box,0);else{show(box,1);
+  box.innerHTML=`Receipts read: <b>${inr(sum)}</b> in total. Automatic reading can be wrong, so check it against the bill.${ok.length>1?useBtn(sum):''}${cl>0&&Math.abs(cl-sum)>1?`<div class="fl">Receipt shows ${inr(sum)} but you entered ${inr(cl)}. The checker will see this difference.</div>`:''}`}
+ $$('#fl button[data-amt],#ocr button[data-amt]').forEach(b=>b.onclick=()=>{$('#amount').value=b.dataset.amt;drawFiles()});
+ sync();scanAll()}
+let scanning=false;
+async function scanAll(){if(scanning)return;scanning=true;
+ try{for(const f of files){if(f.scan||!scannable(f))continue;f.scan={s:'wait'};drawFiles();
+  try{const r=await call('scanReceipt',{name:f.name,mime:f.type,data:await b64(f)});f.scan={s:r.status,amount:r.amount,level:r.level,c:r.cands}}catch(e){f.scan={s:'ERR'}}drawFiles()}}
+ finally{scanning=false}
+ if(files.some(f=>!f.scan&&scannable(f)))scanAll()}
 const b64=f=>new Promise((res,rej)=>{const r=new FileReader();r.onload=()=>res(r.result.split(',')[1]);r.onerror=rej;r.readAsDataURL(f)});
 
 async function submit(e){e.preventDefault();const fm=$('#fm'),m=modes(),n=$('#nature').value,v=id=>$('#'+id).value.trim();msg(fm,'');
@@ -159,13 +190,13 @@ async function submit(e){e.preventDefault();const fm=$('#fm'),m=modes(),n=$('#na
  if(!files.length&&!v('reason'))return bad('Explain why there is no receipt.');
  if(files.reduce((a,f)=>a+f.size,0)>B.cfg.maxBytes)return bad('Total upload size must be under 10 MB.');
  if(files.some(f=>!B.cfg.types.includes(f.type)))return bad('Only PDF, JPG and PNG files are allowed.');
- if((m.includes('Own Motorcycle')||m.includes('Own car'))&&(!v('start')||!v('dest')))return bad('Own motorcycle / own car needs a start point and a destination.');
+ if((m.includes('Own Motorcycle')||m.includes('Own car'))&&(!destVal()||(!rt&&!(Number(v('manualKm'))>0))))return bad('Own motorcycle / own car needs a destination with a calculated distance. Wait for the distance to appear or enter it manually.');
  const btn=$('#go');btn.disabled=true;btn.textContent=files.length?'Uploading files and saving…':'Saving…';
  try{const fl=await Promise.all(files.map(async f=>({name:f.name,mime:f.type,data:await b64(f)})));
   const r=await call('submitVoucher',{token,person:v('person'),dept:v('dept'),date:v('date'),nature:n,modes:n==='Conveyance'?m:[],
-   startMode:document.querySelector('[name=sm]:checked').value,start:v('start'),dest:v('dest'),manualKm:v('manualKm'),amount:v('amount'),remarks:v('remarks'),reason:v('reason'),files:fl});
+   dest:ROUTE.includes(n)?destVal():'',trip:$('#trip').value,manualKm:v('manualKm'),amount:v('amount'),remarks:v('remarks'),reason:v('reason'),files:fl});
   msg(fm,`Voucher submitted. ID: ${r.voucherId}`,'s');$('#f').reset();files=[];km='';token=newToken();
-  if(B.user.role==='EMPLOYEE')$('#person').value=B.user.person;$('#date').value=$('#date').max;$('#start').value=B.cfg.office;drawFiles();fm.scrollIntoView({behavior:'smooth'})
+  if(B.user.role==='EMPLOYEE')$('#person').value=B.user.person;$('#date').value=$('#date').max;rt=null;destGps='';$('#dest').readOnly=false;show($('#gpsn'),0);drawFiles();fm.scrollIntoView({behavior:'smooth'})
  }catch(x){bad(x.message+' Nothing was submitted twice; you can press Submit again.')}
  finally{btn.disabled=false;btn.textContent='Submit voucher'}}
 
@@ -187,10 +218,10 @@ function open(id){const d=$('#det');show(d,1);d.innerHTML='<p class="mut">Loadin
   <dt>Person</dt><dd>${esc(v.person)} · ${esc(v.dept)}</dd><dt>Date</dt><dd>${esc(v.date)} (submitted ${esc(v.ts)})</dd><dt>Nature</dt><dd>${esc(v.nature)} ${esc(v.modes)}</dd>
   <dt>Claimed</dt><dd>${inr(v.amount)}</dd>${v.verified!==''?`<dt>Verified</dt><dd>${inr(v.verified)}</dd>`:''}
   ${v.start||v.dest?`<dt>Route</dt><dd>${esc(v.start)} → ${esc(v.dest)}</dd>`:''}
-  ${v.km!==''?`<dt>Distance</dt><dd>${esc(v.km)} km (${esc(v.kmSrc)}) × ₹${B.cfg.rate} = ${inr(v.eligible)} suggested</dd>`:''}
-  <dt>Remarks</dt><dd>${esc(v.desc)||'—'}</dd><dt>Receipts</dt><dd>${v.link?`<a href="${esc(v.link)}" target="_blank" rel="noopener">Open folder</a> (needs Drive access)`:'None on file'}</dd>
+  ${v.km!==''?`<dt>Distance</dt><dd>${esc(v.km)} km ${esc(String(v.trip).toLowerCase())} (${esc(v.kmSrc)})${v.eligible!==''?` × ₹${B.cfg.rate} = ${inr(v.eligible)} suggested`:''}</dd>`:''}
+  <dt>Remarks</dt><dd>${esc(v.desc)||'—'}</dd>${v.ocr!==''?`<dt>Receipt reads</dt><dd>${inr(v.ocr)} (automatic, unverified)<br><span class="mut">${esc(v.ocrDetail)}</span></dd>`:''}<dt>Receipts</dt><dd>${v.link?`<a href="${esc(v.link)}" target="_blank" rel="noopener">Open folder</a> (needs Drive access)`:'None on file'}</dd>
   ${v.checkerBy?`<dt>Checked by</dt><dd>${esc(v.checkerBy)} ${esc(v.checkerNote)}</dd>`:''}${v.mdBy?`<dt>MD</dt><dd>${esc(v.mdBy)} ${esc(v.mdNote)}</dd>`:''}</dl>
-  ${metro?`<div class="box"><label class="lb" for="mk">Metro fare check: trip distance (km) from the DMRC fare calculator</label><input type="number" id="mk" step="0.1" min="0" style="max-width:160px"> <span id="mf"></span><div class="mut">Reference for one trip on ${esc(v.date)} (${metroDay(v.date)?'Sunday/holiday':'Mon–Sat'} fares). Compare with the tickets; it does not change any amount.</div></div>`:''}
+  ${metro?`<div class="box"><label class="lb" for="mk">Metro fare check: trip distance (km) from the DMRC fare calculator</label><input type="number" id="mk" step="0.1" min="0" style="max-width:160px" value="${v.km!==''?(v.trip==='ROUND TRIP'?v.km/2:v.km):''}"> <span id="mf"></span><div class="mut">Reference for one trip on ${esc(v.date)} (${metroDay(v.date)?'Sunday/holiday':'Mon–Sat'} fares). Compare with the tickets; it does not change any amount.</div></div>`:''}
   ${v.flags.map(f=>`<div class="fl">⚠ ${esc(f)}</div>`).join('')}
   ${v.canAct?`<div style="margin-top:14px">${st==='SUBMITTED'?`<div class="g2"><div class="f"><label for="ver">Verified amount (₹)</label><input type="number" id="ver" step="0.01" value="${esc(v.amount)}"></div>
   ${own?`<div class="f"><label for="rkm">Confirmed distance (km)</label><input type="number" id="rkm" step="0.1" value="${esc(v.km)}"></div>`:''}</div>`:''}
@@ -199,7 +230,7 @@ function open(id){const d=$('#det');show(d,1);d.innerHTML='<p class="mut">Loadin
   <h3 style="margin-top:16px">History</h3>${r.hist.map(h=>`<p class="mut">${esc(h.t)} · ${esc(h.by)} · ${esc(h.action)} → ${esc(h.to)} ${esc(h.note)}</p>`).join('')||'<p class="mut">No history yet.</p>'}
   <button class="btn sec" style="margin-top:12px" id="cl">Close</button>`;
   $('#cl').onclick=()=>show(d,0);
-  if($('#mk'))$('#mk').oninput=()=>{const k=Number($('#mk').value);const s=B.cfg.metro.find(x=>k<=x[0]);$('#mf').innerHTML=k>0&&s?`Fare slab: <b>${inr(metroDay(v.date)?s[2]:s[1])}</b> per trip`:''};
+  if($('#mk'))$('#mk').oninput=()=>{const k=Number($('#mk').value);const s=B.cfg.metro.find(x=>k<=x[0]);$('#mf').innerHTML=k>0&&s?`Fare slab: <b>${inr(metroDay(v.date)?s[2]:s[1])}</b> per trip`:''};if($('#mk'))$('#mk').oninput();
   $$('#det [data-a]').forEach(b=>b.onclick=()=>{const a=b.dataset.a;
    if(a!=='advance'&&!confirm(`${a==='reject'?'Reject':'Return'} ${v.id}? This is recorded in the audit history.`))return;
    if(a==='advance'&&st==='APPROVED'&&!confirm('Mark as paid? Only do this once payment has been made.'))return;
