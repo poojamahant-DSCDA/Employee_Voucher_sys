@@ -1,11 +1,17 @@
 <!DOCTYPE html>
 <html lang="en"><head><meta charset="utf-8">
-<meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <title>DSCDA Voucher Desk</title>
 <style>
 :root{--navy:#183763;--deep:#12315B;--blue:#1558C0;--mid:#3D73D9;--pale:#EAF3FF;--soft:#DDEBFC;--surf:#F6F9FE;--bd:#D6E3F5;--mut:#58749B;--tx:#203A60;--ok:#1B7A46;--warn:#8A5A00;--err:#B3261E;--ff:'Segoe UI',system-ui,-apple-system,Roboto,sans-serif}
 *{box-sizing:border-box;margin:0}
-body{font:16px/1.5 var(--ff);color:var(--tx);background:linear-gradient(#DDEBFC,#F3F8FF 360px) fixed;padding:12px}
+html{-webkit-text-size-adjust:100%;text-size-adjust:100%}
+body{font:16px/1.5 var(--ff);color:var(--tx);background:#F3F8FF;padding:12px;padding-left:max(12px,env(safe-area-inset-left));padding-right:max(12px,env(safe-area-inset-right));padding-bottom:max(24px,env(safe-area-inset-bottom));overflow-wrap:break-word}
+body::before{content:"";position:fixed;inset:0;z-index:-1;background:linear-gradient(#DDEBFC,#F3F8FF 360px)}
+input,select,textarea,button{max-width:100%;min-width:0}
+input[type=date]{-webkit-appearance:none;appearance:none;min-height:48px;text-align:left;display:block}
+input[type=date]::-webkit-date-and-time-value{text-align:left;min-height:1.4em}
+select{-webkit-appearance:none;appearance:none;background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8' viewBox='0 0 12 8'%3E%3Cpath d='M1 1l5 5 5-5' fill='none' stroke='%2358749B' stroke-width='2'/%3E%3C/svg%3E");background-repeat:no-repeat;background-position:right 14px center;padding-right:38px;text-overflow:ellipsis}
 .wrap{max-width:860px;margin:0 auto}
 h1,h2,h3{font-family:Georgia,"Times New Roman",serif;color:var(--deep);font-weight:700}
 .bar{display:flex;align-items:center;gap:12px;background:#fff;border:1px solid var(--bd);border-radius:18px;padding:10px 14px;box-shadow:0 4px 18px rgba(24,55,99,.06)}
@@ -13,7 +19,7 @@ h1,h2,h3{font-family:Georgia,"Times New Roman",serif;color:var(--deep);font-weig
 .bar b{display:block;font:700 18px Georgia,serif;color:var(--deep)}.bar small,.mut{color:var(--mut);font-size:13px}
 .me{margin-left:auto;text-align:right;font-size:13px}
 .tabs{display:flex;gap:8px;margin:16px 0}
-.tabs button{flex:1;padding:12px;border:1px solid var(--bd);background:#fff;border-radius:14px;font:600 15px/1.2 var(--ff);color:var(--mut);cursor:pointer}
+.tabs button{flex:1;padding:12px 6px;border:1px solid var(--bd);background:#fff;border-radius:14px;font:600 15px/1.2 var(--ff);color:var(--mut);cursor:pointer}
 .tabs button.on{background:var(--blue);border-color:var(--blue);color:#fff}
 .card{background:#fff;border:1px solid var(--bd);border-radius:20px;padding:18px;margin-bottom:14px}
 .card h2{font-size:21px;margin-bottom:12px}
@@ -37,16 +43,16 @@ textarea{min-height:90px;resize:vertical}
 .files div{display:flex;justify-content:space-between;align-items:center;gap:8px;padding:8px 12px;border:1px solid var(--bd);border-radius:10px;margin-top:6px;font-size:14px}
 .files button{border:0;background:none;color:var(--err);font-weight:700;cursor:pointer;padding:6px 10px}
 .row{display:flex;justify-content:space-between;gap:10px;align-items:flex-start;padding:12px 0;border-top:1px solid var(--bd);cursor:pointer}
-.row:first-child{border-top:0}.row b{display:block}.pill{font-size:12px;font-weight:700;padding:3px 10px;border-radius:99px;background:var(--soft);color:var(--navy);white-space:nowrap}
+.row:first-child{border-top:0}.row>div{min-width:0}.row>div:last-child{flex:none;max-width:45%}.row b{display:block;overflow-wrap:anywhere}.pill{font-size:12px;font-weight:700;padding:3px 10px;border-radius:99px;background:var(--soft);color:var(--navy);white-space:nowrap}
 .pill.APPROVED,.pill.COMPLETED,.pill.VERIFIED{background:#E6F4EC;color:var(--ok)}.pill.REJECTED{background:#FDECEA;color:var(--err)}.pill.RETURNED{background:#FFF4DC;color:var(--warn)}
 .chips{display:flex;flex-wrap:wrap;gap:8px;margin-bottom:12px}.chips span{background:var(--surf);border:1px solid var(--bd);border-radius:12px;padding:6px 12px;font-size:13px}
 .sg{position:absolute;left:0;right:0;top:100%;z-index:5;margin-top:4px;background:#fff;border:1px solid var(--bd);border-radius:12px;box-shadow:0 8px 24px rgba(24,55,99,.14);max-height:260px;overflow:auto}.sg div{padding:11px 14px;cursor:pointer;font-size:15px;border-top:1px solid var(--bd)}.sg div:first-child{border-top:0}.sg div:hover{background:var(--pale)}
-.fb{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:12px}.fb label{font-size:12px;color:var(--mut);font-weight:600;display:block;margin-bottom:3px}.fb select,.fb input{padding:11px 12px;font-size:16px}
+.fb{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:8px;margin-bottom:12px}.fb>div{min-width:0}.fb label{font-size:12px;color:var(--mut);font-weight:600;display:block;margin-bottom:3px}.fb select,.fb input{padding:11px 12px;font-size:16px}
 .flt{display:grid;grid-template-columns:1fr;gap:8px;margin-bottom:8px}
-dl{display:grid;grid-template-columns:130px 1fr;gap:6px 10px;font-size:14px}dt{color:var(--mut)}dd{margin:0;overflow-wrap:anywhere}
+dl{display:grid;grid-template-columns:110px minmax(0,1fr);gap:6px 10px;font-size:14px}@media(max-width:420px){dl{grid-template-columns:1fr;gap:0}dt{margin-top:8px;font-size:12px}}dt{color:var(--mut)}dd{margin:0;overflow-wrap:anywhere}
 .acts{display:grid;gap:8px;margin-top:12px}
 .hide{display:none!important}
-@media(min-width:640px){.fb{grid-template-columns:repeat(5,1fr)}.g2{display:grid;grid-template-columns:1fr 1fr;gap:0 14px}.flt{grid-template-columns:200px 1fr}.acts{grid-template-columns:2fr 1fr 1fr}}
+@media(min-width:640px){.fb{grid-template-columns:repeat(5,minmax(0,1fr))}.g2{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:0 14px}.flt{grid-template-columns:200px 1fr}.acts{grid-template-columns:2fr 1fr 1fr}}
 </style></head><body><div class="wrap">
 <div class="bar"><div class="logo">DC</div><div><b>DSCDA</b><small>Voucher desk</small></div><div class="me" id="me"></div></div>
 <form id="login" class="card hide"><h2>Sign in</h2><div class="f"><label for="lname">Your name</label><select id="lname"></select></div>
@@ -231,14 +237,15 @@ async function submit(e){e.preventDefault();const fm=$('#fm'),m=modes(),n=$('#na
  }catch(x){bad(x.message+' Nothing was submitted twice; you can press Submit again.')}
  finally{btn.disabled=false;btn.textContent='Submit voucher'}}
 
-const rowH=v=>`<div class="row" data-id="${esc(v.id)}" tabindex="0"><div><b>${esc(v.id)}</b>${esc(v.person)} · ${esc(v.nature)} · ${esc(v.date)}<br><span class="mut">${esc(v.desc).slice(0,70)}</span></div><div style="text-align:right"><b>${inr(v.amount)}</b><span class="pill ${esc(v.status)}">${esc(v.status)}</span>${v.auto?'<br><small class="mut">auto-approved</small>':v.status==='SUBMITTED'?'<br><small class="mut">needs checking</small>':''}</div></div>`;
+const fmtD=d=>{const x=new Date(d+'T00:00:00');return isNaN(x)?esc(d):x.toLocaleDateString('en-GB',{day:'2-digit',month:'short',year:'numeric'})};
+const rowH=v=>`<div class="row" data-id="${esc(v.id)}" tabindex="0" role="button"><div><b>${esc(v.id)}</b>${esc(v.person)} · ${esc(v.nature)}<br><span class="mut">${fmtD(v.date)}${v.desc?' · '+esc(String(v.desc).slice(0,60)):''}</span></div><div style="text-align:right"><b>${inr(v.amount)}</b><span class="pill ${esc(v.status)}">${esc(v.status)}</span>${v.auto?'<br><small class="mut">auto-approved</small>':v.status==='SUBMITTED'?'<br><small class="mut">needs checking</small>':''}</div></div>`;
 function list(el,items,empty){el.innerHTML=items.length?items.map(rowH).join(''):`<p class="mut">${empty}</p>`;
  $$('#'+el.id+' .row').forEach(r=>{r.onclick=()=>open(r.dataset.id);r.onkeydown=e=>{if(e.key==='Enter')open(r.dataset.id)}})}
 const STS=['SUBMITTED','VERIFIED','APPROVED','RETURNED','REJECTED','COMPLETED'];let tmr;
 function bar(id,pending){const nm=B.user.role!=='EMPLOYEE',el=$('#fb_'+id);
  el.innerHTML=(nm?`<div><label for="${id}n">Name</label><select id="${id}n"><option value="">All names</option></select></div>`:'')+
  `<div><label for="${id}f">Voucher date from</label><input type="date" id="${id}f"></div><div><label for="${id}t">Voucher date to</label><input type="date" id="${id}t"></div>
- <div><label for="${id}s">Status</label><select id="${id}s">${pending?'<option value="PENDING">Needs my action</option>':''}<option value="ALL">All</option>${STS.map(x=>`<option>${x}</option>`).join('')}</select></div>
+ <div><label for="${id}s">Status</label><select id="${id}s">${pending?'<option value="PENDING">My action</option>':''}<option value="ALL">All</option>${STS.map(x=>`<option>${x}</option>`).join('')}</select></div>
  <div><label for="${id}q">Search</label><input id="${id}q" placeholder="Voucher ID"></div>`;
  el.querySelectorAll('select,input').forEach(x=>x.oninput=()=>{clearTimeout(tmr);tmr=setTimeout(()=>load(id),x.id.endsWith('q')?350:60)})}
 function load(id){const el=$('#'+id+'L'),g=k=>($('#'+id+k)||{}).value||'',rv=id==='rev',staff=B.user.role!=='EMPLOYEE';
@@ -250,17 +257,18 @@ function load(id){const el=$('#'+id+'L'),g=k=>($('#'+id+k)||{}).value||'',rv=id=
  .catch(e=>el.innerHTML=`<div class="msg e">${esc(e.message)}</div>`)}
 
 const metroDay=d=>new Date(d+'T00:00:00Z').getUTCDay()===0||B.cfg.holidays.includes(d);
-function open(id){const d=$('#det');show(d,1);d.innerHTML='<p class="mut">Loading…</p>';d.scrollIntoView({behavior:'smooth'});
+function back(){const d=$('#det'),t=document.querySelector('.tabs .on').dataset.t;show(d,0);show($('#'+t),1);load(t);window.scrollTo(0,0)}
+function open(id){const d=$('#det'),t=document.querySelector('.tabs .on').dataset.t;show($('#'+t),0);show(d,1);d.innerHTML='<p class="mut">Loading…</p>';window.scrollTo(0,0);
  call('getVoucher',id).then(r=>{const v=r.v,st=v.status,own=/Own Motorcycle|Own car/.test(v.modes),metro=/Metro/.test(v.modes);
   const lbl={SUBMITTED:'Verify',VERIFIED:'Approve',APPROVED:'Mark paid'}[st];
-  d.innerHTML=`<h2>${esc(v.id)} <span class="pill ${esc(st)}">${esc(st)}</span></h2><div id="dm"></div><dl>
+  d.innerHTML=`<button type="button" class="btn sec" id="bk" style="margin-bottom:12px">← Back to list</button><h2>${esc(v.id)} <span class="pill ${esc(st)}">${esc(st)}</span></h2><div id="dm"></div><dl>
   <dt>Person</dt><dd>${esc(v.person)} · ${esc(v.dept)}</dd><dt>Date</dt><dd>${esc(v.date)} (submitted ${esc(v.ts)})</dd><dt>Nature</dt><dd>${esc(v.nature)} ${esc(v.modes)}</dd>
   <dt>Claimed</dt><dd>${inr(v.amount)}</dd>${v.verified!==''?`<dt>Verified</dt><dd>${inr(v.verified)}</dd>`:''}
   ${v.start||v.dest?`<dt>Route</dt><dd>${esc(v.start)} → ${esc(v.dest)}</dd>`:''}
   ${v.km!==''?`<dt>Distance</dt><dd>${esc(v.km)} km ${esc(String(v.trip).toLowerCase())} (${esc(v.kmSrc)})${v.eligible!==''?` × ₹${B.cfg.rate} = ${inr(v.eligible)} suggested`:''}</dd>`:''}
   <dt>Remarks</dt><dd>${esc(v.desc)||'—'}</dd>${v.ocr!==''?`<dt>Receipt reads</dt><dd>${inr(v.ocr)} (automatic, unverified)<br><span class="mut">${esc(v.ocrDetail)}</span></dd>`:''}<dt>Receipts</dt><dd>${v.link?`<a href="${esc(v.link)}" target="_blank" rel="noopener">Open folder</a> (needs Drive access)`:'None on file'}</dd>
   ${v.checkerBy?`<dt>Checked by</dt><dd>${esc(v.checkerBy)} ${esc(v.checkerNote)}</dd>`:''}${v.mdBy?`<dt>MD</dt><dd>${esc(v.mdBy)} ${esc(v.mdNote)}</dd>`:''}</dl>
-  ${metro?`<div class="box"><label class="lb" for="mk">Metro fare check: trip distance (km) from the DMRC fare calculator</label><input type="number" id="mk" step="0.1" min="0" style="max-width:160px" value="${v.km!==''?(v.trip==='ROUND TRIP'?v.km/2:v.km):''}"> <span id="mf"></span><div class="mut">Reference for one trip on ${esc(v.date)} (${metroDay(v.date)?'Sunday/holiday':'Mon–Sat'} fares). Compare with the tickets; it does not change any amount.</div></div>`:''}
+  ${metro?`<div class="box"><label class="lb" for="mk">Metro fare check: trip distance (km) from the DMRC fare calculator</label><input type="number" id="mk" step="0.1" min="0" style="max-width:160px" value="${v.km!==''?(v.trip==='ROUND TRIP'?v.km/2:v.km):''}"> <div id="mf" style="margin-top:6px"></div><div class="mut">Reference for one trip on ${esc(v.date)} (${metroDay(v.date)?'Sunday/holiday':'Mon–Sat'} fares). Compare with the tickets; it does not change any amount.</div></div>`:''}
   ${v.auto?`<div class="msg s" style="margin-top:10px">Approved automatically: ${esc(v.autoNote)}</div>`:''}
   ${v.flags.map(f=>`<div class="fl">⚠ ${esc(f)}</div>`).join('')}
   ${v.canAct?`<div style="margin-top:14px">${st==='SUBMITTED'?`<div class="g2"><div class="f"><label for="ver">Verified amount (₹)</label><input type="number" id="ver" step="0.01" value="${esc(v.amount)}"></div>
@@ -269,13 +277,13 @@ function open(id){const d=$('#det');show(d,1);d.innerHTML='<p class="mut">Loadin
   <div class="acts"><button class="btn" data-a="advance">${lbl}</button>${st!=='APPROVED'?'<button class="btn bad" data-a="return">Return</button><button class="btn bad" data-a="reject">Reject</button>':''}</div></div>`:''}
   <h3 style="margin-top:16px">History</h3>${r.hist.map(h=>`<p class="mut">${esc(h.t)} · ${esc(h.by)} · ${esc(h.action)} → ${esc(h.to)} ${esc(h.note)}</p>`).join('')||'<p class="mut">No history yet.</p>'}
   <button class="btn sec" style="margin-top:12px" id="cl">Close</button>`;
-  $('#cl').onclick=()=>show(d,0);
+  $('#cl').onclick=back;$('#bk').onclick=back;
   if($('#mk'))$('#mk').oninput=()=>{const k=Number($('#mk').value);const s=B.cfg.metro.find(x=>k<=x[0]);$('#mf').innerHTML=k>0&&s?`Fare slab: <b>${inr(metroDay(v.date)?s[2]:s[1])}</b> per trip`:''};if($('#mk'))$('#mk').oninput();
   $$('#det [data-a]').forEach(b=>b.onclick=()=>{const a=b.dataset.a;
    if(a!=='advance'&&!confirm(`${a==='reject'?'Reject':'Return'} ${v.id}? This is recorded in the audit history.`))return;
    if(a==='advance'&&st==='APPROVED'&&!confirm('Mark as paid? Only do this once payment has been made.'))return;
    $$('#det button').forEach(x=>x.disabled=true);
    call('actOnVoucher',{id:v.id,action:a,comment:$('#cm').value,verified:$('#ver')?$('#ver').value:'',km:$('#rkm')&&$('#rkm').value!==String(v.km)?$('#rkm').value:''})
-    .then(()=>{show(d,0);reload()}).catch(e=>{msg($('#dm'),e.message,'e');$$('#det button').forEach(x=>x.disabled=false)})})
- }).catch(e=>d.innerHTML=`<div class="msg e">${esc(e.message)}</div>`)}
+    .then(()=>back()).catch(e=>{msg($('#dm'),e.message,'e');$$('#det button').forEach(x=>x.disabled=false)})})
+ }).catch(e=>d.innerHTML=`<button type="button" class="btn sec" onclick="back()">← Back to list</button><div class="msg e" style="margin-top:10px">${esc(e.message)}</div>`)}
 </script></body></html>
