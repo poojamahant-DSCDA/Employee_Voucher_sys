@@ -206,6 +206,7 @@ function drawFiles(){const t=files.reduce((a,f)=>a+f.size,0);
  $$('#fl button[data-amt],#ocr button[data-amt]').forEach(b=>b.onclick=()=>{$('#amount').value=b.dataset.amt;drawFiles()});
  sync();scanAll()}
 function verdict(cl,sum){if(!(cl>0)||files.some(f=>!f.scan||f.scan.s==='wait'))return'';
+ if(B.user.role==='ADMIN')return'<div class="fl">Vouchers raised by Admin skip the checker and go directly to the MD for approval.</div>';
  const m=modes(),own=$('#nature').value==='Conveyance'&&(m.includes('Own Motorcycle')||m.includes('Own car'));
  const all=files.every(f=>f.scan.s==='OK'&&f.scan.amount!=null&&f.scan.level==='likely');
  if(own)return'<div class="fl">Own vehicle claims are always checked.</div>';
@@ -234,7 +235,7 @@ async function submit(e){e.preventDefault();const fm=$('#fm'),m=modes(),n=$('#na
  try{const fl=await Promise.all(files.map(async f=>({name:f.name,mime:f.type,data:await b64(f)})));
   const r=await call('submitVoucher',{token,person:v('person'),dept:v('dept'),date:v('date'),nature:n,modes:n==='Conveyance'?m:[],
    dest:ROUTE.includes(n)?destVal():'',destLabel:destPick?destPick.label:'',trip:$('#trip').value,manualKm:v('manualKm'),amount:v('amount'),remarks:v('remarks'),reason:v('reason'),files:fl});
-  msg(fm,`Voucher submitted. ID: ${r.voucherId}. `+(r.outcome==='AUTO_APPROVED'?'Status: Approved (your claim is within the receipt total). It now goes to Accounts for payment.':'This voucher needs to be checked by Accounts. '+(r.note||'')),r.outcome==='AUTO_APPROVED'?'s':'w');$('#f').reset();files=[];km='';token=newToken();
+  msg(fm,`Voucher submitted. ID: ${r.voucherId}. `+(r.outcome==='AUTO_APPROVED'?'Status: Approved (your claim is within the receipt total). It now goes to Accounts for payment.':r.outcome==='SENT_TO_MD'?'Sent directly to the MD for approval.':'This voucher needs to be checked by Accounts. '+(r.note||'')),r.outcome==='AUTO_APPROVED'||r.outcome==='SENT_TO_MD'?'s':'w');$('#f').reset();files=[];km='';token=newToken();
   $('#date').value=$('#date').max;rt=null;destGps='';destPick=null;$('#dest').readOnly=false;show($('#gpsn'),0);drawFiles();fm.scrollIntoView({behavior:'smooth'})
  }catch(x){bad(x.message+' Nothing was submitted twice; you can press Submit again.')}
  finally{btn.disabled=false;btn.textContent='Submit voucher'}}
