@@ -243,15 +243,16 @@ async function submit(e){e.preventDefault();const fm=$('#fm'),m=modes(),n=$('#na
  }catch(x){bad(x.message+' Nothing was submitted twice; you can press Submit again.')}
  finally{btn.disabled=false;btn.textContent='Submit voucher'}}
 
-function sumBar(){$('#smyH').textContent=B.user.role==='EMPLOYEE'?'My spend summary':'Spend summary';$('#fb_smy').innerHTML=`<div><label for="sp">Period</label><select id="sp"><option value="m">This month</option><option value="l">Last month</option><option value="y">This financial year</option><option value="a">All time</option><option value="c">Custom dates</option></select></div><div><label for="sfr">Voucher date from</label><input type="date" id="sfr"></div><div><label for="sto">Voucher date to</label><input type="date" id="sto"></div>`;
- $('#sp').onchange=()=>{setPeriod();loadSum()};['#sfr','#sto'].forEach(s=>$(s).onchange=()=>{$('#sp').value='c';loadSum()});setPeriod()}
+function sumBar(){$('#smyH').textContent=B.user.role==='EMPLOYEE'?'My spend summary':'Spend summary';$('#fb_smy').innerHTML=(B.user.role!=='EMPLOYEE'?'<div><label for="snm">Person</label><select id="snm"><option value="">All people</option></select></div>':'')+`<div><label for="sp">Period</label><select id="sp"><option value="m">This month</option><option value="l">Last month</option><option value="y">This financial year</option><option value="a">All time</option><option value="c">Custom dates</option></select></div><div><label for="sfr">Voucher date from</label><input type="date" id="sfr"></div><div><label for="sto">Voucher date to</label><input type="date" id="sto"></div>`;
+ if($('#snm'))$('#snm').onchange=()=>loadSum();$('#sp').onchange=()=>{setPeriod();loadSum()};['#sfr','#sto'].forEach(s=>$(s).onchange=()=>{$('#sp').value='c';loadSum()});setPeriod()}
 function setPeriod(){const p=$('#sp').value;if(p==='c')return;const T=new Date().toLocaleDateString('en-CA',{timeZone:'Asia/Kolkata'}),[Y,M]=T.split('-').map(Number),pad=n=>String(n).padStart(2,'0');let a='',b='';
  if(p==='m'){a=`${Y}-${pad(M)}-01`;b=T}
  else if(p==='l'){const pm=M===1?12:M-1,py=M===1?Y-1:Y;a=`${py}-${pad(pm)}-01`;b=`${py}-${pad(pm)}-${pad(new Date(py,pm,0).getDate())}`}
  else if(p==='y'){a=`${M>=4?Y:Y-1}-04-01`;b=T}
  $('#sfr').value=a;$('#sto').value=b}
 function loadSum(){const el=$('#smyL'),T={'In Delhi':'In station (Delhi)','Outside Delhi':'Outside Delhi'};el.innerHTML='<p class="mut">Loading…</p>';
- call('summary',{from:$('#sfr').value,to:$('#sto').value}).then(r=>{
+ call('summary',{from:$('#sfr').value,to:$('#sto').value,name:($('#snm')||{}).value||''}).then(r=>{
+  const sn=$('#snm');if(sn){const cur=sn.value;sn.innerHTML='<option value="">All people</option>'+(r.names||[]).map(n=>`<option>${esc(n)}</option>`).join('');sn.value=cur}
   el.innerHTML=`<div class="chips"><span>Approved / paid: <b>${inr(r.total.done)}</b></span><span>Pending approval: <b>${inr(r.total.pend)}</b></span><span>Vouchers: <b>${r.total.n}</b></span></div>`+
   r.sections.map(s=>`<h3 style="margin:14px 0 6px">${T[s.scope]}</h3><div style="overflow-x:auto"><table class="tb"><tr><th>Category</th><th>Vouchers</th><th>Approved / paid</th><th>Pending</th></tr>${s.rows.map(x=>`<tr><td>${esc(x.cat)}</td><td>${x.n}</td><td>${inr(x.done)}</td><td>${inr(x.pend)}</td></tr>`).join('')}<tr class="t"><td>Total</td><td>${s.n}</td><td>${inr(s.done)}</td><td>${inr(s.pend)}</td></tr></table></div>`).join('')+
   '<div class="note">Amounts are the verified amount (the claimed amount where none was verified). Approved / paid includes approved and paid vouchers. Pending is submitted or verified but not yet approved. Returned and rejected vouchers are left out. A voucher with more than one conveyance mode is shown under "Mixed", because one amount is claimed per voucher. Vouchers raised before the "Where was this?" field existed count as In Delhi.</div>'})
