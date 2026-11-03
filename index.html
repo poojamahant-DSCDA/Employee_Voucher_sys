@@ -52,6 +52,7 @@ textarea{min-height:90px;resize:vertical}
 dl{display:grid;grid-template-columns:110px minmax(0,1fr);gap:6px 10px;font-size:14px}@media(max-width:420px){dl{grid-template-columns:1fr;gap:0}dt{margin-top:8px;font-size:12px}}dt{color:var(--mut)}dd{margin:0;overflow-wrap:anywhere}
 .acts{display:grid;gap:8px;margin-top:12px}
 .hide{display:none!important}
+.tb{width:100%;border-collapse:collapse;font-size:14px}.tb td,.tb th{padding:8px 6px;border-top:1px solid var(--bd);text-align:right;white-space:nowrap}.tb th{color:var(--mut);font-size:12px;border-top:0}.tb td:first-child,.tb th:first-child{text-align:left;white-space:normal}.tb tr.t td{font-weight:700;background:var(--surf)}
 .act{display:inline-block;margin-top:6px;padding:6px 12px;border-radius:99px;background:var(--blue);color:#fff;font-size:13px;font-weight:700}
 .rcf{margin-top:10px}.rcf img{max-width:100%;border:1px solid var(--bd);border-radius:12px;display:block;margin:6px 0}.rcf iframe{width:100%;height:480px;border:1px solid var(--bd);border-radius:12px;margin:6px 0}
 @media(min-width:640px){.fb{grid-template-columns:repeat(5,minmax(0,1fr))}.g2{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:0 14px}.flt{grid-template-columns:200px 1fr}.acts{grid-template-columns:2fr 1fr 1fr}}
@@ -62,14 +63,15 @@ dl{display:grid;grid-template-columns:110px minmax(0,1fr);gap:6px 10px;font-size
 <button class="btn" id="lgo">Sign in</button><p class="mut" id="ln" role="alert" style="margin-top:10px"></p></form>
 <div id="err" class="card hide"></div>
 <div id="app" class="hide">
-<div class="tabs"><button data-t="new" id="tNew" class="on">New voucher</button><button data-t="mine" id="tMine">Vouchers</button><button data-t="rev" id="tRev" class="hide">Vouchers</button></div>
+<div class="tabs"><button data-t="new" id="tNew" class="on">New voucher</button><button data-t="mine" id="tMine">Vouchers</button><button data-t="rev" id="tRev" class="hide">Vouchers</button><button data-t="smy" id="tSmy" class="hide">Summary</button></div>
 
 <section id="new"><form class="card" id="f" novalidate>
 <h2>New voucher</h2><div id="fm"></div>
 <div class="g2"><div class="f"><label class="req" for="person">Person raising voucher</label><select id="person"></select></div>
 <div class="f"><label class="req" for="dept">Department</label><select id="dept"></select></div>
 <div class="f"><label class="req" for="date">Voucher date</label><input type="date" id="date"></div>
-<div class="f"><label class="req" for="nature">Nature of voucher</label><select id="nature"></select></div></div>
+<div class="f"><label class="req" for="nature">Nature of voucher</label><select id="nature"></select></div>
+<div class="f"><label class="req" for="scope">Where was this?</label><select id="scope"><option>In Delhi</option><option>Outside Delhi</option></select></div></div>
 <div id="modesBox" class="f hide"><span class="lb req">Type of conveyance</span><div class="chk" id="modes"></div></div>
 <div id="route" class="hide">
 <div class="f"><span class="lb">Starting point (always the office)</span><div class="box" id="startTxt" style="margin-top:0"></div></div>
@@ -95,6 +97,7 @@ dl{display:grid;grid-template-columns:110px minmax(0,1fr);gap:6px 10px;font-size
 <section id="mine" class="hide"><div class="card"><h2 id="mineH">Vouchers</h2><div class="fb" id="fb_mine"></div><div id="mineL"></div></div></section>
 <section id="rev" class="hide"><div class="card"><h2>All vouchers</h2><div class="chips" id="sum"></div><div class="fb" id="fb_rev"></div><div id="revL"></div></div></section>
 
+<section id="smy" class="hide"><div class="card"><h2>Spend summary</h2><div class="fb" id="fb_smy"></div><div id="smyL"></div></div></section>
 <div class="card hide" id="det"></div>
 </div>
 </div>
@@ -129,7 +132,7 @@ function init(){
  $('#modes').innerHTML=c.modes.map(m=>`<label><input type="checkbox" value="${esc(m)}"> ${esc(m)}</label>`).join('');
  $('#date').value=new Date().toLocaleDateString('en-CA',{timeZone:'Asia/Kolkata'});$('#date').max=$('#date').value;
  $('#startTxt').textContent=c.office;token=newToken();
- if(u.role!=='EMPLOYEE'){show($('#tRev'),1);show($('#tMine'),0)}   // staff get one combined Vouchers tab
+ if(u.role!=='EMPLOYEE'){show($('#tRev'),1);show($('#tMine'),0);show($('#tSmy'),1);sumBar()}   // staff get one combined Vouchers tab
  $('#mineH').textContent=u.role==='EMPLOYEE'?'My vouchers':'All vouchers';
  $$('.tabs button').forEach(b=>b.onclick=()=>tab(b.dataset.t));
  $('#nature').onchange=sync;$('#modes').onchange=sync;
@@ -143,15 +146,15 @@ function init(){
  $('#f').onsubmit=submit;bar('mine',false);bar('rev',true);
  if(u.role==='MD'){show($('#tNew'),0);tab('rev')}   // the MD only reviews
 }
-function tab(t){$$('.tabs button').forEach(b=>b.classList.toggle('on',b.dataset.t===t));['new','mine','rev'].forEach(s=>show($('#'+s),s===t));show($('#det'),0);
- if(t==='mine'||t==='rev')load(t)}
+function tab(t){$$('.tabs button').forEach(b=>b.classList.toggle('on',b.dataset.t===t));['new','mine','rev','smy'].forEach(s=>show($('#'+s),s===t));show($('#det'),0);
+ if(t==='mine'||t==='rev')load(t);if(t==='smy')loadSum()}
 const reload=()=>{const t=document.querySelector('.tabs .on').dataset.t;if(t==='mine'||t==='rev')load(t)};
 const modes=()=>$$('#modes input:checked').map(i=>i.value);
 const ROUTE=['Conveyance','PORTER','COURIER','POSTAGE'];let rt=null,destGps='',destPick=null,seq=0,tm2,tm3,sgSeq=0,PL=null,plTok=null;
 const destVal=()=>document.querySelector('[name=dm]:checked').value==='gps'?destGps:(destPick?destPick.coords:$('#dest').value.trim());
 function sync(){const n=$('#nature').value,conv=n==='Conveyance',m=modes(),r=ROUTE.includes(n);
  show($('#modesBox'),conv);show($('#route'),r);show($('#billn'),conv&&(m.includes('Metro')||m.includes('Cab')));show($('#rs'),!files.length);
- if(!r){rt=null;destGps=''}charges()}
+ if(!r){rt=null;destGps=''}if(n==='STAY')$('#scope').value='Outside Delhi';$('#scope').disabled=n==='STAY';charges()}
 function destMode(){const g=document.querySelector('[name=dm]:checked').value==='gps',d=$('#dest'),n=$('#gpsn');rt=null;destGps='';destPick=null;show($('#sg'),0);seq++;d.value='';d.readOnly=g;show(n,g);show($('#mkm'),0);
  if(!g){charges();d.focus();return}
  n.textContent='Getting your location…';
@@ -233,13 +236,26 @@ async function submit(e){e.preventDefault();const fm=$('#fm'),m=modes(),n=$('#na
  if((m.includes('Own Motorcycle')||m.includes('Own car'))&&(!destVal()||(!rt&&!(Number(v('manualKm'))>0))))return bad('Own motorcycle / own car needs a destination with a calculated distance. Wait for the distance to appear or enter it manually.');
  const btn=$('#go');btn.disabled=true;btn.textContent=files.length?'Uploading files and saving…':'Saving…';
  try{const fl=await Promise.all(files.map(async f=>({name:f.name,mime:f.type,data:await b64(f)})));
-  const r=await call('submitVoucher',{token,person:v('person'),dept:v('dept'),date:v('date'),nature:n,modes:n==='Conveyance'?m:[],
+  const r=await call('submitVoucher',{token,person:v('person'),dept:v('dept'),date:v('date'),nature:n,scope:$('#scope').value,modes:n==='Conveyance'?m:[],
    dest:ROUTE.includes(n)?destVal():'',destLabel:destPick?destPick.label:'',trip:$('#trip').value,manualKm:v('manualKm'),amount:v('amount'),remarks:v('remarks'),reason:v('reason'),files:fl});
   msg(fm,`Voucher submitted. ID: ${r.voucherId}. `+(r.outcome==='AUTO_APPROVED'?'Status: Approved (your claim is within the receipt total). It now goes to Accounts for payment.':r.outcome==='SENT_TO_MD'?'Sent directly to the MD for approval.':'This voucher needs to be checked by Accounts. '+(r.note||'')),r.outcome==='AUTO_APPROVED'||r.outcome==='SENT_TO_MD'?'s':'w');$('#f').reset();files=[];km='';token=newToken();
   $('#date').value=$('#date').max;rt=null;destGps='';destPick=null;$('#dest').readOnly=false;show($('#gpsn'),0);drawFiles();fm.scrollIntoView({behavior:'smooth'})
  }catch(x){bad(x.message+' Nothing was submitted twice; you can press Submit again.')}
  finally{btn.disabled=false;btn.textContent='Submit voucher'}}
 
+function sumBar(){$('#fb_smy').innerHTML=`<div><label for="sp">Period</label><select id="sp"><option value="m">This month</option><option value="l">Last month</option><option value="y">This financial year</option><option value="a">All time</option><option value="c">Custom dates</option></select></div><div><label for="sfr">Voucher date from</label><input type="date" id="sfr"></div><div><label for="sto">Voucher date to</label><input type="date" id="sto"></div>`;
+ $('#sp').onchange=()=>{setPeriod();loadSum()};['#sfr','#sto'].forEach(s=>$(s).onchange=()=>{$('#sp').value='c';loadSum()});setPeriod()}
+function setPeriod(){const p=$('#sp').value;if(p==='c')return;const T=new Date().toLocaleDateString('en-CA',{timeZone:'Asia/Kolkata'}),[Y,M]=T.split('-').map(Number),pad=n=>String(n).padStart(2,'0');let a='',b='';
+ if(p==='m'){a=`${Y}-${pad(M)}-01`;b=T}
+ else if(p==='l'){const pm=M===1?12:M-1,py=M===1?Y-1:Y;a=`${py}-${pad(pm)}-01`;b=`${py}-${pad(pm)}-${pad(new Date(py,pm,0).getDate())}`}
+ else if(p==='y'){a=`${M>=4?Y:Y-1}-04-01`;b=T}
+ $('#sfr').value=a;$('#sto').value=b}
+function loadSum(){const el=$('#smyL'),T={'In Delhi':'In station (Delhi)','Outside Delhi':'Outside Delhi'};el.innerHTML='<p class="mut">Loading…</p>';
+ call('summary',{from:$('#sfr').value,to:$('#sto').value}).then(r=>{
+  el.innerHTML=`<div class="chips"><span>Approved / paid: <b>${inr(r.total.done)}</b></span><span>Pending approval: <b>${inr(r.total.pend)}</b></span><span>Vouchers: <b>${r.total.n}</b></span></div>`+
+  r.sections.map(s=>`<h3 style="margin:14px 0 6px">${T[s.scope]}</h3><div style="overflow-x:auto"><table class="tb"><tr><th>Category</th><th>Vouchers</th><th>Approved / paid</th><th>Pending</th></tr>${s.rows.map(x=>`<tr><td>${esc(x.cat)}</td><td>${x.n}</td><td>${inr(x.done)}</td><td>${inr(x.pend)}</td></tr>`).join('')}<tr class="t"><td>Total</td><td>${s.n}</td><td>${inr(s.done)}</td><td>${inr(s.pend)}</td></tr></table></div>`).join('')+
+  '<div class="note">Amounts are the verified amount (the claimed amount where none was verified). Approved / paid includes approved and paid vouchers. Pending is submitted or verified but not yet approved. Returned and rejected vouchers are left out. A voucher with more than one conveyance mode is shown under "Mixed", because one amount is claimed per voucher. Vouchers raised before the "Where was this?" field existed count as In Delhi.</div>'})
+ .catch(e=>el.innerHTML=`<div class="msg e">${esc(e.message)}</div>`)}
 const fmtD=d=>{const x=new Date(d+'T00:00:00');return isNaN(x)?esc(d):x.toLocaleDateString('en-GB',{day:'2-digit',month:'short',year:'numeric'})};
 const rowH=v=>`<div class="row" data-id="${esc(v.id)}" tabindex="0" role="button"><div><b>${esc(v.id)}</b>${esc(v.person)} · ${esc(v.nature)}<br><span class="mut">${fmtD(v.date)}${v.desc?' · '+esc(String(v.desc).slice(0,60)):''}</span></div><div style="text-align:right"><b>${inr(v.amount)}</b><span class="pill ${esc(v.status)}">${esc(v.status)}</span>${v.auto?'<br><small class="mut">auto-approved</small>':v.status==='SUBMITTED'&&!v.canAct?'<br><small class="mut">needs checking</small>':''}${v.canAct?`<br><span class="act">${{SUBMITTED:'Verify',VERIFIED:'Review &amp; approve',APPROVED:'Mark paid'}[v.status]||'Open'} →</span>`:''}</div></div>`;
 function list(el,items,empty){el.innerHTML=items.length?items.map(rowH).join(''):`<p class="mut">${empty}</p>`;
@@ -275,7 +291,7 @@ function open(id){const d=$('#det'),t=document.querySelector('.tabs .on').datase
  call('getVoucher',id).then(r=>{const v=r.v,st=v.status,own=/Own Motorcycle|Own car/.test(v.modes),metro=/Metro/.test(v.modes);
   const lbl={SUBMITTED:'Verify',VERIFIED:'Approve',APPROVED:'Mark paid'}[st];
   d.innerHTML=`<button type="button" class="btn sec" id="bk" style="margin-bottom:12px">← Back to list</button><h2>${esc(v.id)} <span class="pill ${esc(st)}">${esc(st)}</span></h2><div id="dm"></div><dl>
-  <dt>Person</dt><dd>${esc(v.person)} · ${esc(v.dept)}</dd><dt>Date</dt><dd>${esc(v.date)} (submitted ${esc(v.ts)})</dd><dt>Nature</dt><dd>${esc(v.nature)} ${esc(v.modes)}</dd>
+  <dt>Person</dt><dd>${esc(v.person)} · ${esc(v.dept)}</dd><dt>Date</dt><dd>${esc(v.date)} (submitted ${esc(v.ts)})</dd><dt>Nature</dt><dd>${esc(v.nature)} ${esc(v.modes)}</dd><dt>Where</dt><dd>${esc(v.scope)}</dd>
   <dt>Claimed</dt><dd>${inr(v.amount)}</dd>${v.verified!==''?`<dt>Verified</dt><dd>${inr(v.verified)}</dd>`:''}
   ${v.start||v.dest?`<dt>Route</dt><dd>${esc(v.start)} → ${esc(v.dest)}</dd>`:''}
   ${v.km!==''?`<dt>Distance</dt><dd>${esc(v.km)} km ${esc(String(v.trip).toLowerCase())} (${esc(v.kmSrc)})${v.eligible!==''?` × ₹${B.cfg.rate} = ${inr(v.eligible)} suggested`:''}</dd>`:''}
