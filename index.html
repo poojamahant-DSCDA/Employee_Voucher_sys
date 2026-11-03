@@ -97,7 +97,7 @@ dl{display:grid;grid-template-columns:110px minmax(0,1fr);gap:6px 10px;font-size
 <section id="mine" class="hide"><div class="card"><h2 id="mineH">Vouchers</h2><div class="fb" id="fb_mine"></div><div id="mineL"></div></div></section>
 <section id="rev" class="hide"><div class="card"><h2>All vouchers</h2><div class="chips" id="sum"></div><div class="fb" id="fb_rev"></div><div id="revL"></div></div></section>
 
-<section id="smy" class="hide"><div class="card"><h2>Spend summary</h2><div class="fb" id="fb_smy"></div><div id="smyL"></div></div></section>
+<section id="smy" class="hide"><div class="card"><h2 id="smyH">Spend summary</h2><div class="fb" id="fb_smy"></div><div id="smyL"></div></div></section>
 <div class="card hide" id="det"></div>
 </div>
 </div>
@@ -132,7 +132,7 @@ function init(){
  $('#modes').innerHTML=c.modes.map(m=>`<label><input type="checkbox" value="${esc(m)}"> ${esc(m)}</label>`).join('');
  $('#date').value=new Date().toLocaleDateString('en-CA',{timeZone:'Asia/Kolkata'});$('#date').max=$('#date').value;
  $('#startTxt').textContent=c.office;token=newToken();
- if(u.role!=='EMPLOYEE'){show($('#tRev'),1);show($('#tMine'),0);show($('#tSmy'),1);sumBar()}   // staff get one combined Vouchers tab
+ show($('#tSmy'),1);sumBar();if(u.role!=='EMPLOYEE'){show($('#tRev'),1);show($('#tMine'),0)}   // staff get one combined Vouchers tab
  $('#mineH').textContent=u.role==='EMPLOYEE'?'My vouchers':'All vouchers';
  $$('.tabs button').forEach(b=>b.onclick=()=>tab(b.dataset.t));
  $('#nature').onchange=sync;$('#modes').onchange=sync;
@@ -243,7 +243,7 @@ async function submit(e){e.preventDefault();const fm=$('#fm'),m=modes(),n=$('#na
  }catch(x){bad(x.message+' Nothing was submitted twice; you can press Submit again.')}
  finally{btn.disabled=false;btn.textContent='Submit voucher'}}
 
-function sumBar(){$('#fb_smy').innerHTML=`<div><label for="sp">Period</label><select id="sp"><option value="m">This month</option><option value="l">Last month</option><option value="y">This financial year</option><option value="a">All time</option><option value="c">Custom dates</option></select></div><div><label for="sfr">Voucher date from</label><input type="date" id="sfr"></div><div><label for="sto">Voucher date to</label><input type="date" id="sto"></div>`;
+function sumBar(){$('#smyH').textContent=B.user.role==='EMPLOYEE'?'My spend summary':'Spend summary';$('#fb_smy').innerHTML=`<div><label for="sp">Period</label><select id="sp"><option value="m">This month</option><option value="l">Last month</option><option value="y">This financial year</option><option value="a">All time</option><option value="c">Custom dates</option></select></div><div><label for="sfr">Voucher date from</label><input type="date" id="sfr"></div><div><label for="sto">Voucher date to</label><input type="date" id="sto"></div>`;
  $('#sp').onchange=()=>{setPeriod();loadSum()};['#sfr','#sto'].forEach(s=>$(s).onchange=()=>{$('#sp').value='c';loadSum()});setPeriod()}
 function setPeriod(){const p=$('#sp').value;if(p==='c')return;const T=new Date().toLocaleDateString('en-CA',{timeZone:'Asia/Kolkata'}),[Y,M]=T.split('-').map(Number),pad=n=>String(n).padStart(2,'0');let a='',b='';
  if(p==='m'){a=`${Y}-${pad(M)}-01`;b=T}
