@@ -97,12 +97,12 @@ dl{display:grid;grid-template-columns:110px minmax(0,1fr);gap:6px 10px;font-size
 <section id="mine" class="hide"><div class="card"><h2 id="mineH">Vouchers</h2><div class="fb" id="fb_mine"></div><div id="mineL"></div></div></section>
 <section id="rev" class="hide"><div class="card"><h2>All vouchers</h2><div class="chips" id="sum"></div><div class="fb" id="fb_rev"></div><div id="revL"></div></div></section>
 
-<section id="smy" class="hide"><div class="card"><h2 id="smyH">Spend summary</h2><div class="fb" id="fb_smy"></div><div id="smyL"></div></div></section>
+<section id="smy" class="hide"><div class="card"><h2 id="smyH">Spend summary</h2><div class="fb" id="fb_smy"></div><div id="dlb" style="display:flex;flex-wrap:wrap;gap:8px;margin:0 0 12px"><button type="button" class="btn sec" data-f="xlsx">Download Excel</button><button type="button" class="btn sec" data-f="csv">Download CSV</button><button type="button" class="btn sec" data-f="pdf">Print / PDF</button></div><div id="dlm"></div><div id="smyL"></div></div></section>
 <div class="card hide" id="det"></div>
 </div>
 </div>
 <script>
-const API_URL='https://script.google.com/macros/s/AKfycbwM7LQusEObGJimvQwuR18t9D0QROJISHbLhqKQSO372BFGvRXnZbR9d2fMaZG2rfMI/exec',MAPS_KEY='';   // not secrets. MAPS_KEY (optional) turns on Google Places suggestions
+const API_URL='https://script.google.com/macros/s/AKfycbxhFs0SJ42JX1uNeYFIS61dFRUs5sgRZL0drtjKXRnDDNFwfSPs-LJeS5mGTbcCpbF5/exec',MAPS_KEY='';   // not secrets. MAPS_KEY (optional) turns on Google Places suggestions
 let sess='';try{sess=sessionStorage.getItem('dscda_s')||''}catch(e){}
 const setSess=t=>{sess=t;try{t?sessionStorage.setItem('dscda_s',t):sessionStorage.removeItem('dscda_s')}catch(e){}};
 const $=s=>document.querySelector(s),$$=s=>[...document.querySelectorAll(s)];
@@ -244,19 +244,48 @@ async function submit(e){e.preventDefault();const fm=$('#fm'),m=modes(),n=$('#na
  finally{btn.disabled=false;btn.textContent='Submit voucher'}}
 
 function sumBar(){$('#smyH').textContent=B.user.role==='EMPLOYEE'?'My spend summary':'Spend summary';$('#fb_smy').innerHTML=(B.user.role!=='EMPLOYEE'?'<div><label for="snm">Person</label><select id="snm"><option value="">All people</option></select></div>':'')+`<div><label for="sp">Period</label><select id="sp"><option value="m">This month</option><option value="l">Last month</option><option value="y">This financial year</option><option value="a">All time</option><option value="c">Custom dates</option></select></div><div><label for="sfr">Voucher date from</label><input type="date" id="sfr"></div><div><label for="sto">Voucher date to</label><input type="date" id="sto"></div>`;
- if($('#snm'))$('#snm').onchange=()=>loadSum();$('#sp').onchange=()=>{setPeriod();loadSum()};['#sfr','#sto'].forEach(s=>$(s).onchange=()=>{$('#sp').value='c';loadSum()});setPeriod()}
+ if($('#snm'))$('#snm').onchange=()=>loadSum();$('#sp').onchange=()=>{setPeriod();loadSum()};['#sfr','#sto'].forEach(s=>$(s).onchange=()=>{$('#sp').value='c';loadSum()});$$('#dlb button').forEach(b=>b.onclick=()=>doExport(b.dataset.f));setPeriod()}
 function setPeriod(){const p=$('#sp').value;if(p==='c')return;const T=new Date().toLocaleDateString('en-CA',{timeZone:'Asia/Kolkata'}),[Y,M]=T.split('-').map(Number),pad=n=>String(n).padStart(2,'0');let a='',b='';
  if(p==='m'){a=`${Y}-${pad(M)}-01`;b=T}
  else if(p==='l'){const pm=M===1?12:M-1,py=M===1?Y-1:Y;a=`${py}-${pad(pm)}-01`;b=`${py}-${pad(pm)}-${pad(new Date(py,pm,0).getDate())}`}
  else if(p==='y'){a=`${M>=4?Y:Y-1}-04-01`;b=T}
  $('#sfr').value=a;$('#sto').value=b}
-function loadSum(){const el=$('#smyL'),T={'In Delhi':'In station (Delhi)','Outside Delhi':'Outside Delhi'};el.innerHTML='<p class="mut">Loading…</p>';
+const SCOPE_T={'In Delhi':'In station (Delhi)','Outside Delhi':'Outside Delhi'},SUMH=['Category','Vouchers','Submitted','Verified by checker','Approved by MD','Paid'],VH=['Voucher ID','Voucher date','Person','Department','Nature','Conveyance','Where','Category','Status','Claimed (Rs)','Counted amount (Rs)','Checker','MD','Remarks'];
+function loadSum(){const el=$('#smyL');el.innerHTML='<p class="mut">Loading…</p>';
  call('summary',{from:$('#sfr').value,to:$('#sto').value,name:($('#snm')||{}).value||''}).then(r=>{
   const sn=$('#snm');if(sn){const cur=sn.value;sn.innerHTML='<option value="">All people</option>'+(r.names||[]).map(n=>`<option>${esc(n)}</option>`).join('');sn.value=cur}
-  el.innerHTML=`<div class="chips"><span>Approved / paid: <b>${inr(r.total.done)}</b></span><span>Pending approval: <b>${inr(r.total.pend)}</b></span><span>Vouchers: <b>${r.total.n}</b></span></div>`+
-  r.sections.map(s=>`<h3 style="margin:14px 0 6px">${T[s.scope]}</h3><div style="overflow-x:auto"><table class="tb"><tr><th>Category</th><th>Vouchers</th><th>Approved / paid</th><th>Pending</th></tr>${s.rows.map(x=>`<tr><td>${esc(x.cat)}</td><td>${x.n}</td><td>${inr(x.done)}</td><td>${inr(x.pend)}</td></tr>`).join('')}<tr class="t"><td>Total</td><td>${s.n}</td><td>${inr(s.done)}</td><td>${inr(s.pend)}</td></tr></table></div>`).join('')+
-  '<div class="note">Amounts are the verified amount (the claimed amount where none was verified). Approved / paid includes approved and paid vouchers. Pending is submitted or verified but not yet approved. Returned and rejected vouchers are left out. A voucher with more than one conveyance mode is shown under "Mixed", because one amount is claimed per voucher. Vouchers raised before the "Where was this?" field existed count as In Delhi.</div>'})
+  const t=r.total,row=(c,x)=>`<td>${c}</td><td>${x.n}</td><td>${inr(x.sub)}</td><td>${inr(x.ver)}</td><td>${inr(x.apr)}</td><td>${inr(x.paid)}</td>`;
+  el.innerHTML=`<div class="chips"><span>Submitted: <b>${inr(t.sub)}</b></span><span>Verified by checker: <b>${inr(t.ver)}</b></span><span>Approved by MD: <b>${inr(t.apr)}</b></span><span>Paid: <b>${inr(t.paid)}</b></span><span>Vouchers: <b>${t.n}</b></span></div>`+
+  r.sections.map(s=>`<h3 style="margin:14px 0 6px">${SCOPE_T[s.scope]}</h3><div style="overflow-x:auto"><table class="tb"><tr>${SUMH.map(x=>`<th>${x}</th>`).join('')}</tr>${s.rows.map(x=>`<tr>${row(esc(x.cat),x)}</tr>`).join('')}<tr class="t">${row('Total',s)}</tr></table></div>`).join('')+
+  '<div class="note">Each voucher is counted once, at its current stage. Submitted: waiting for the checker. Verified by checker: waiting for the MD. Approved by MD: approved and waiting for payment (auto-approved vouchers are included here). Paid: payment done. Amounts are the verified amount, or the claimed amount where none was verified. Returned and rejected vouchers are left out of these totals but appear in the downloaded voucher list. A voucher with more than one conveyance mode is shown under "Mixed". Vouchers made before the "Where was this?" field existed count as In Delhi.</div>'})
  .catch(e=>el.innerHTML=`<div class="msg e">${esc(e.message)}</div>`)}
+let dlBusy=false;
+const sf=v=>typeof v==='string'&&/^[=+\-@]/.test(v)?"'"+v:v;
+const csvCell=v=>{v=String(v==null?'':v);return /[",\r\n]/.test(v)?'"'+v.replace(/"/g,'""')+'"':v};
+function saveBlob(blob,name){const a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download=name;document.body.appendChild(a);a.click();setTimeout(()=>{URL.revokeObjectURL(a.href);a.remove()},1500)}
+function loadXlsx(){return window.XLSX?Promise.resolve():new Promise((res,rej)=>{const s=document.createElement('script');s.src='https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js';s.onload=res;s.onerror=()=>rej(new Error('Could not load the Excel library. Check your network, or use CSV.'));document.head.appendChild(s)})}
+function buildAoa(d){const t=d.total,sum=[['DSCDA voucher spend summary'],['Period',(d.from||'start')+' to '+(d.to||'today')],['Person',d.personLabel],['Generated',d.generated+' by '+d.who],[]];
+ d.sections.forEach(s=>{sum.push([SCOPE_T[s.scope]]);sum.push(SUMH);s.rows.forEach(x=>sum.push([x.cat,x.n,x.sub,x.ver,x.apr,x.paid]));sum.push(['Total',s.n,s.sub,s.ver,s.apr,s.paid]);sum.push([])});
+ sum.push(['All vouchers',t.n,t.sub,t.ver,t.apr,t.paid]);
+ const ppl=[['Person','Vouchers','Submitted','Verified by checker','Approved by MD','Paid']].concat(d.people.map(p=>[sf(p.person),p.n,p.sub,p.ver,p.apr,p.paid]),[['Total',t.n,t.sub,t.ver,t.apr,t.paid]]);
+ const vch=[VH].concat(d.rows.map(r=>r.map(sf)));return{sum,ppl,vch}}
+function printDoc(w,all){let h='',open=false;const close=()=>{if(open){h+='</table>';open=false}};
+ all.forEach(r=>{if(!r.length){close();return}if(r.length===1){close();h+=`<h3>${esc(r[0])}</h3>`;return}
+  if(!open){h+='<table>';open=true}const hd=r.length>2&&['Category','Person','Voucher ID'].includes(r[0]);
+  h+='<tr>'+r.map(c=>`<${hd?'th':'td'}>${esc(c)}</${hd?'th':'td'}>`).join('')+'</tr>'});close();
+ w.document.open();w.document.write(`<!doctype html><html><head><meta charset="utf-8"><title>DSCDA voucher spend summary</title><style>body{font:12px Arial,sans-serif;color:#111;margin:16px}h3{margin:14px 0 6px}table{border-collapse:collapse;width:100%;margin-bottom:8px}td,th{border:1px solid #bbb;padding:4px 6px;text-align:left;vertical-align:top}th{background:#eee}</style></head><body>${h}</body></html>`);w.document.close();w.focus();setTimeout(()=>w.print(),400)}
+async function doExport(f){if(dlBusy)return;dlBusy=true;const bs=$$('#dlb button');bs.forEach(b=>b.disabled=true);msg($('#dlm'),'');let w=null;
+ try{
+  if(f==='pdf'){w=window.open('','_blank');if(!w)throw new Error('Allow pop-ups for this page to print, or use Excel / CSV.');w.document.write('<p style="font:14px Arial">Preparing…</p>')}
+  if(f==='xlsx')await loadXlsx();
+  const sn=$('#snm'),pl=sn?(sn.value||'All people'):(B.user.person||B.user.name);
+  const d=await call('exportData',{from:$('#sfr').value,to:$('#sto').value,name:sn?sn.value:''});d.personLabel=pl;
+  const {sum,ppl,vch}=buildAoa(d),all=[].concat(sum,[[],['By person']],ppl,[[],['Voucher list']],vch),base='DSCDA_'+pl.replace(/[^\w]+/g,'_')+'_'+(d.from||'start')+'_to_'+(d.to||'today');
+  if(f==='xlsx'){const wb=XLSX.utils.book_new();[['Summary',sum],['By person',ppl],['Vouchers',vch]].forEach(x=>XLSX.utils.book_append_sheet(wb,XLSX.utils.aoa_to_sheet(x[1]),x[0]));XLSX.writeFile(wb,base+'.xlsx')}
+  else if(f==='csv')saveBlob(new Blob(['\ufeff'+all.map(r=>r.map(csvCell).join(',')).join('\r\n')],{type:'text/csv;charset=utf-8'}),base+'.csv');
+  else printDoc(w,all)
+ }catch(e){if(w)try{w.close()}catch(x){}msg($('#dlm'),e.message,'e')}
+ finally{dlBusy=false;bs.forEach(b=>b.disabled=false)}}
 const fmtD=d=>{const x=new Date(d+'T00:00:00');return isNaN(x)?esc(d):x.toLocaleDateString('en-GB',{day:'2-digit',month:'short',year:'numeric'})};
 const rowH=v=>`<div class="row" data-id="${esc(v.id)}" tabindex="0" role="button"><div><b>${esc(v.id)}</b>${esc(v.person)} · ${esc(v.nature)}<br><span class="mut">${fmtD(v.date)}${v.desc?' · '+esc(String(v.desc).slice(0,60)):''}</span></div><div style="text-align:right"><b>${inr(v.amount)}</b><span class="pill ${esc(v.status)}">${esc(v.status)}</span>${v.auto?'<br><small class="mut">auto-approved</small>':v.status==='SUBMITTED'&&!v.canAct?'<br><small class="mut">needs checking</small>':''}${v.canAct?`<br><span class="act">${{SUBMITTED:'Verify',VERIFIED:'Review &amp; approve',APPROVED:'Mark paid'}[v.status]||'Open'} →</span>`:''}</div></div>`;
 function list(el,items,empty){el.innerHTML=items.length?items.map(rowH).join(''):`<p class="mut">${empty}</p>`;
