@@ -211,13 +211,14 @@ function drawFiles(){const t=files.reduce((a,f)=>a+f.size,0);
   box.innerHTML=`Receipts read: <b>${inr(sum)}</b> in total. Automatic reading can be wrong, so check it against the bill.${ok.length>1?useBtn(sum):''}${verdict(cl,sum)}`}
  $$('#fl button[data-amt],#ocr button[data-amt]').forEach(b=>b.onclick=()=>{$('#amount').value=b.dataset.amt;drawFiles()});
  sync();scanAll()}
+const claimOK=(c,r)=>c<=Math.ceil(Math.round(r*100)/100-1e-9)+0.005;   // same rule as the server: up to the next whole rupee, only when the receipt has paise
 function verdict(cl,sum){if(!(cl>0)||files.some(f=>!f.scan||f.scan.s==='wait'))return'';
  if(B.user.role==='ADMIN')return'<div class="fl">Vouchers raised by Admin skip the checker and go directly to the MD for approval.</div>';
  const m=modes(),own=$('#nature').value==='Conveyance'&&(m.includes('Own Motorcycle')||m.includes('Own car'));
  const all=files.every(f=>f.scan.s==='OK'&&f.scan.amount!=null&&f.scan.level==='likely');
  if(own)return'<div class="fl">Own vehicle claims are always checked.</div>';
  if(!all)return'<div class="fl">This voucher will need to be checked: not every receipt was read with confidence.</div>';
- if(cl>sum+0.005)return`<div class="fl">Your claim ${inr(cl)} is more than the receipt total ${inr(sum)}. This voucher will need to be checked.</div>`;
+ if(!claimOK(cl,sum))return`<div class="fl">Your claim ${inr(cl)} is more than the receipt total ${inr(sum)} (only up to the next whole rupee is allowed, and only when the receipt has paise). This voucher will need to be checked.</div>`;
  return'<div class="msg s" style="margin:8px 0 0">Your claim is within the receipt total, so this voucher will be auto-approved.</div>'}
 let scanning=false;
 async function scanAll(){if(scanning)return;scanning=true;
@@ -274,22 +275,22 @@ function buildAoa(d){const t=d.total,sum=[['DSCDA voucher spend summary'],['Peri
  sum.push(['All vouchers',t.n,t.sub,t.ver,t.apr,t.auto,t.paid,t.paidAuto]);
  const ppl=[['Person','Vouchers','Submitted','Verified by checker','Approved by MD','Auto-approved','Paid (MD-approved)','Paid (auto-approved)']].concat(d.people.map(p=>[sf(p.person),p.n,p.sub,p.ver,p.apr,p.auto,p.paid,p.paidAuto]),[['Total',t.n,t.sub,t.ver,t.apr,t.auto,t.paid,t.paidAuto]]);
  const vch=[VH].concat(d.rows.map(r=>r.map((c,i)=>sf(i===8?stl(c):c))));return{sum,ppl,vch}}
-function printDoc(w,all){let h='',open=false;const close=()=>{if(open){h+='</table>';open=false}};
+function printDoc(all){let h='',open=false;const close=()=>{if(open){h+='</table>';open=false}};
  all.forEach(r=>{if(!r.length){close();return}if(r.length===1){close();h+=`<h3>${esc(r[0])}</h3>`;return}
   if(!open){h+='<table>';open=true}const hd=r.length>2&&['Category','Person','Voucher ID'].includes(r[0]);
   h+='<tr>'+r.map(c=>`<${hd?'th':'td'}>${esc(c)}</${hd?'th':'td'}>`).join('')+'</tr>'});close();
- w.document.open();w.document.write(`<!doctype html><html><head><meta charset="utf-8"><title>DSCDA voucher spend summary</title><style>body{font:12px Arial,sans-serif;color:#111;margin:16px}h3{margin:14px 0 6px}table{border-collapse:collapse;width:100%;margin-bottom:8px}td,th{border:1px solid #bbb;padding:4px 6px;text-align:left;vertical-align:top}th{background:#eee}@page{size:landscape}</style></head><body>${h}</body></html>`);w.document.close();w.focus();setTimeout(()=>w.print(),400)}
-async function doExport(f){if(dlBusy)return;dlBusy=true;const bs=$$('#dlb button');bs.forEach(b=>b.disabled=true);msg($('#dlm'),'');let w=null;
+ const old=$('#pf');if(old)old.remove();const fr=document.createElement('iframe');fr.id='pf';fr.setAttribute('aria-hidden','true');fr.style.cssText='position:fixed;right:0;bottom:0;width:0;height:0;border:0';document.body.appendChild(fr);const w=fr.contentWindow;
+ w.document.open();w.document.write(`<!doctype html><html><head><meta charset="utf-8"><title>DSCDA voucher spend summary</title><style>body{font:12px Arial,sans-serif;color:#111;margin:16px}h3{margin:14px 0 6px}table{border-collapse:collapse;width:100%;margin-bottom:8px}td,th{border:1px solid #bbb;padding:4px 6px;text-align:left;vertical-align:top}th{background:#eee}@page{size:landscape}</style></head><body>${h}</body></html>`);w.document.close();setTimeout(()=>{w.focus();w.print()},400)}
+async function doExport(f){if(dlBusy)return;dlBusy=true;const bs=$$('#dlb button');bs.forEach(b=>b.disabled=true);msg($('#dlm'),'');
  try{
-  if(f==='pdf'){w=window.open('','_blank');if(!w)throw new Error('Allow pop-ups for this page to print, or use Excel / CSV.');w.document.write('<p style="font:14px Arial">Preparing…</p>')}
   if(f==='xlsx')await loadXlsx();
   const sn=$('#snm'),pl=sn?(sn.value||'All people'):(B.user.person||B.user.name);
   const d=await call('exportData',{from:$('#sfr').value,to:$('#sto').value,name:sn?sn.value:''});d.personLabel=pl;
   const {sum,ppl,vch}=buildAoa(d),all=[].concat(sum,[[],['By person']],ppl,[[],['Voucher list']],vch),base='DSCDA_'+pl.replace(/[^\w]+/g,'_')+'_'+(d.from||'start')+'_to_'+(d.to||'today');
   if(f==='xlsx'){const wb=XLSX.utils.book_new();[['Summary',sum],['By person',ppl],['Vouchers',vch]].forEach(x=>XLSX.utils.book_append_sheet(wb,XLSX.utils.aoa_to_sheet(x[1]),x[0]));XLSX.writeFile(wb,base+'.xlsx')}
   else if(f==='csv')saveBlob(new Blob(['\ufeff'+all.map(r=>r.map(csvCell).join(',')).join('\r\n')],{type:'text/csv;charset=utf-8'}),base+'.csv');
-  else printDoc(w,all)
- }catch(e){if(w)try{w.close()}catch(x){}msg($('#dlm'),/Unknown request/.test(e.message)?'The server is still running the old Code.gs. In Apps Script choose Deploy, Manage deployments, Edit (pencil), Version: New version, Deploy. Then reload this page with Ctrl+F5.':e.message,'e')}
+  else printDoc(all)
+ }catch(e){msg($('#dlm'),/Unknown request/.test(e.message)?'The server is still running the old Code.gs. In Apps Script choose Deploy, Manage deployments, Edit (pencil), Version: New version, Deploy. Then reload this page with Ctrl+F5.':e.message,'e')}
  finally{dlBusy=false;bs.forEach(b=>b.disabled=false)}}
 
 /* ---------- voucher lists, bulk select, review queue ---------- */
@@ -333,16 +334,16 @@ function load(id){const el=$('#'+id+'L'),g=k=>($('#'+id+k)||{}).value||'',rv=id=
  .catch(e=>el.innerHTML=`<div class="msg e">${esc(e.message)}</div>`)}
 
 /* ---------- download the Vouchers tab (follows the filters on screen, full detail) ---------- */
-async function doVExport(id,f){if(dlBusy)return;dlBusy=true;const bs=$$('.dlv button'),mb=$('#dlm_'+id);bs.forEach(b=>b.disabled=true);msg(mb,'');let w=null;
- try{if(f==='pdf'){w=window.open('','_blank');if(!w)throw new Error('Allow pop-ups for this page to print, or use Excel / CSV.');w.document.write('<p style="font:14px Arial">Preparing…</p>')}
+async function doVExport(id,f){if(dlBusy)return;dlBusy=true;const bs=$$('.dlv button'),mb=$('#dlm_'+id);bs.forEach(b=>b.disabled=true);msg(mb,'');
+ try{
   if(f==='xlsx')await loadXlsx();
   const g=k=>($('#'+id+k)||{}).value||'';
   const d=await call('exportVouchers',{status:g('s'),name:g('n'),from:g('f'),to:g('t'),text:g('q')});
-  const aoa=[d.head].concat(d.rows.map(r=>r.map((c,i)=>sf(i===8?stl(c):c)))),base='DSCDA_vouchers_'+(g('f')||'start')+'_to_'+(g('t')||'today');
+  const si=d.head.indexOf('Status'),aoa=[d.head].concat(d.rows.map(r=>r.map((c,i)=>sf(i===si?stl(c):c)))),base='DSCDA_vouchers_'+(g('f')||'start')+'_to_'+(g('t')||'today');
   if(f==='xlsx'){const wb=XLSX.utils.book_new(),ws=XLSX.utils.aoa_to_sheet(aoa);ws['!cols']=d.head.map(()=>({wch:18}));XLSX.utils.book_append_sheet(wb,ws,'Vouchers');XLSX.writeFile(wb,base+'.xlsx')}
   else if(f==='csv')saveBlob(new Blob(['\ufeff'+aoa.map(r=>r.map(csvCell).join(',')).join('\r\n')],{type:'text/csv;charset=utf-8'}),base+'.csv');
-  else printDoc(w,[['DSCDA vouchers'],['Generated '+d.generated+' by '+d.who],[]].concat(aoa))
- }catch(e){if(w)try{w.close()}catch(x){}msg(mb,/Unknown request/.test(e.message)?'The server is still running the old Code.gs. In Apps Script choose Deploy, Manage deployments, Edit (pencil), Version: New version, Deploy. Then reload this page with Ctrl+F5.':e.message,'e')}
+  else printDoc([['DSCDA vouchers'],['Generated '+d.generated+' by '+d.who],[]].concat(aoa))
+ }catch(e){msg(mb,/Unknown request/.test(e.message)?'The server is still running the old Code.gs. In Apps Script choose Deploy, Manage deployments, Edit (pencil), Version: New version, Deploy. Then reload this page with Ctrl+F5.':e.message,'e')}
  finally{dlBusy=false;bs.forEach(b=>b.disabled=false)}}
 
 /* ---------- voucher detail, receipts (parallel + prefetch), review queue ---------- */
