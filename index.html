@@ -102,7 +102,7 @@ dl{display:grid;grid-template-columns:110px minmax(0,1fr);gap:6px 10px;font-size
 </div>
 </div>
 <script>
-const API_URL='https://script.google.com/macros/s/AKfycbwM7LQusEObGJimvQwuR18t9D0QROJISHbLhqKQSO372BFGvRXnZbR9d2fMaZG2rfMI/exec',MAPS_KEY='';   // not secrets. MAPS_KEY (optional) turns on Google Places suggestions
+const API_URL='https://script.google.com/macros/s/AKfycbxhFs0SJ42JX1uNeYFIS61dFRUs5sgRZL0drtjKXRnDDNFwfSPs-LJeS5mGTbcCpbF5/exec',MAPS_KEY='';   // not secrets. MAPS_KEY (optional) turns on Google Places suggestions
 let sess='';try{sess=sessionStorage.getItem('dscda_s')||''}catch(e){}
 const setSess=t=>{sess=t;try{t?sessionStorage.setItem('dscda_s',t):sessionStorage.removeItem('dscda_s')}catch(e){}};
 const $=s=>document.querySelector(s),$$=s=>[...document.querySelectorAll(s)];
@@ -254,6 +254,7 @@ const SCOPE_T={'In Delhi':'In station (Delhi)','Outside Delhi':'Outside Delhi'},
 function loadSum(){const el=$('#smyL');el.innerHTML='<p class="mut">Loading…</p>';
  call('summary',{from:$('#sfr').value,to:$('#sto').value,name:($('#snm')||{}).value||''}).then(r=>{
   const sn=$('#snm');if(sn){const cur=sn.value;sn.innerHTML='<option value="">All people</option>'+(r.names||[]).map(n=>`<option>${esc(n)}</option>`).join('');sn.value=cur}
+  if(!r.total||r.total.sub===undefined)throw new Error('The server is still running the old Code.gs. In Apps Script choose Deploy, Manage deployments, Edit (pencil), Version: New version, Deploy. Then reload this page with Ctrl+F5.');
   const t=r.total,row=(c,x)=>`<td>${c}</td><td>${x.n}</td><td>${inr(x.sub)}</td><td>${inr(x.ver)}</td><td>${inr(x.apr)}</td><td>${inr(x.paid)}</td>`;
   el.innerHTML=`<div class="chips"><span>Submitted: <b>${inr(t.sub)}</b></span><span>Verified by checker: <b>${inr(t.ver)}</b></span><span>Approved by MD: <b>${inr(t.apr)}</b></span><span>Paid: <b>${inr(t.paid)}</b></span><span>Vouchers: <b>${t.n}</b></span></div>`+
   r.sections.map(s=>`<h3 style="margin:14px 0 6px">${SCOPE_T[s.scope]}</h3><div style="overflow-x:auto"><table class="tb"><tr>${SUMH.map(x=>`<th>${x}</th>`).join('')}</tr>${s.rows.map(x=>`<tr>${row(esc(x.cat),x)}</tr>`).join('')}<tr class="t">${row('Total',s)}</tr></table></div>`).join('')+
@@ -284,7 +285,7 @@ async function doExport(f){if(dlBusy)return;dlBusy=true;const bs=$$('#dlb button
   if(f==='xlsx'){const wb=XLSX.utils.book_new();[['Summary',sum],['By person',ppl],['Vouchers',vch]].forEach(x=>XLSX.utils.book_append_sheet(wb,XLSX.utils.aoa_to_sheet(x[1]),x[0]));XLSX.writeFile(wb,base+'.xlsx')}
   else if(f==='csv')saveBlob(new Blob(['\ufeff'+all.map(r=>r.map(csvCell).join(',')).join('\r\n')],{type:'text/csv;charset=utf-8'}),base+'.csv');
   else printDoc(w,all)
- }catch(e){if(w)try{w.close()}catch(x){}msg($('#dlm'),e.message,'e')}
+ }catch(e){if(w)try{w.close()}catch(x){}msg($('#dlm'),/Unknown request/.test(e.message)?'The server is still running the old Code.gs. In Apps Script choose Deploy, Manage deployments, Edit (pencil), Version: New version, Deploy. Then reload this page with Ctrl+F5.':e.message,'e')}
  finally{dlBusy=false;bs.forEach(b=>b.disabled=false)}}
 const fmtD=d=>{const x=new Date(d+'T00:00:00');return isNaN(x)?esc(d):x.toLocaleDateString('en-GB',{day:'2-digit',month:'short',year:'numeric'})};
 const rowH=v=>`<div class="row" data-id="${esc(v.id)}" tabindex="0" role="button"><div><b>${esc(v.id)}</b>${esc(v.person)} · ${esc(v.nature)}<br><span class="mut">${fmtD(v.date)}${v.desc?' · '+esc(String(v.desc).slice(0,60)):''}</span></div><div style="text-align:right"><b>${inr(v.amount)}</b><span class="pill ${esc(v.status)}">${esc(v.status)}</span>${v.auto?'<br><small class="mut">auto-approved</small>':v.status==='SUBMITTED'&&!v.canAct?'<br><small class="mut">needs checking</small>':''}${v.canAct?`<br><span class="act">${{SUBMITTED:'Verify',VERIFIED:'Review &amp; approve',APPROVED:'Mark paid'}[v.status]||'Open'} →</span>`:''}</div></div>`;
